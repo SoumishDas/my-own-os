@@ -6,6 +6,7 @@ extern void enablePaging();
 
 #include"../libc/string.h"
 #include "../drivers/screen.h"
+#include"paging.h"
 #include <stdint.h>
 #include<stdbool.h>
 

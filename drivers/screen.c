@@ -44,6 +44,18 @@ void kprint(char *message) {
     kprint_at(message, -1, -1);
 }
 
+void kprint_int(int n){
+    char buffer[100];
+    int_to_ascii(n,buffer);
+    kprint(buffer);
+    
+};
+void kprint_hex(int n){
+    char buffer[100];
+    hex_to_ascii(n,buffer);
+    kprint(buffer);
+};
+
 void kprint_backspace() {
     int offset = get_cursor_offset()-2;
     int row = get_offset_row(offset);
@@ -96,7 +108,7 @@ int print_char(char c, int col, int row, char attr) {
     if (offset >= MAX_ROWS * MAX_COLS * 2) {
         int i;
         for (i = 1; i < MAX_ROWS; i++) 
-            memory_copy((uint8_t*)(get_offset(0, i) + VIDEO_ADDRESS),
+            memcpy((uint8_t*)(get_offset(0, i) + VIDEO_ADDRESS),
                         (uint8_t*)(get_offset(0, i-1) + VIDEO_ADDRESS),
                         MAX_COLS * 2);
 

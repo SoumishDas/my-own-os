@@ -8,6 +8,7 @@ uint32_t tick = 0;
 static void timer_callback(registers_t *regs) {
     tick++;
     UNUSED(regs);
+    
 }
 
 void init_timer(uint32_t freq) {

@@ -1,13 +1,13 @@
 #include "mem.h"
 
-void memory_copy(uint8_t *source, uint8_t *dest, int nbytes) {
+void memcpy(uint8_t *source, uint8_t *dest, int nbytes) {
     int i;
     for (i = 0; i < nbytes; i++) {
         *(dest + i) = *(source + i);
     }
 }
 
-void memory_set(uint8_t *dest, uint8_t val, uint32_t len) {
+void memset(uint8_t *dest, uint8_t val, uint32_t len) {
     uint8_t *temp = (uint8_t *)dest;
     for ( ; len != 0; len--) *temp++ = val;
 }
@@ -15,19 +15,44 @@ void memory_set(uint8_t *dest, uint8_t val, uint32_t len) {
 /* This should be computed at link time, but a hardcoded
  * value is fine for now. Remember that our kernel starts
  * at 0x1000 as defined on the Makefile */
-uint32_t free_mem_addr = 0x10000;
+uint32_t placement_address = 0xc4fff;
+
 /* Implementation is just a pointer to some free memory which
  * keeps growing */
-uint32_t kmalloc(size_t size, int align, uint32_t *phys_addr) {
+
+uint32_t kmalloc_a(size_t sz){
+    if ((placement_address & 0xFFFFF000)) {
+        placement_address &= 0xFFFFF000;
+        placement_address += 0x1000;
+    }
+    uint32_t ret = placement_address;
+    placement_address += sz; /* Remember to increment the pointer */
+    return ret;
+
+}
+uint32_t kmalloc_p(size_t sz, uint32_t *phys){
+    /* Save also the physical address */
+    if (phys) *phys = placement_address;
+
+    uint32_t ret = placement_address;
+    placement_address += sz; /* Remember to increment the pointer */
+    return ret;
+}
+uint32_t kmalloc_ap(size_t sz, uint32_t *phys){
     /* Pages are aligned to 4K, or 0x1000 */
-    if (align == 1 && (free_mem_addr & 0xFFFFF000)) {
-        free_mem_addr &= 0xFFFFF000;
-        free_mem_addr += 0x1000;
+    if ((placement_address & 0xFFFFF000)) {
+        placement_address &= 0xFFFFF000;
+        placement_address += 0x1000;
     }
     /* Save also the physical address */
-    if (phys_addr) *phys_addr = free_mem_addr;
+    if (phys) *phys = placement_address;
 
-    uint32_t ret = free_mem_addr;
-    free_mem_addr += size; /* Remember to increment the pointer */
+    uint32_t ret = placement_address;
+    placement_address += sz; /* Remember to increment the pointer */
+    return ret;
+}
+uint32_t kmalloc(size_t sz){
+    uint32_t ret = placement_address;
+    placement_address += sz; /* Remember to increment the pointer */
     return ret;
 }
