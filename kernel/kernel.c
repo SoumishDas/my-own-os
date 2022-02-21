@@ -6,14 +6,16 @@
 
 #include <stdint.h>
 
+heap_t *kheap=0;
+
+char * ptr;
 
 void kernel_main() {
     isr_install();
     irq_install();
 
     
-    InitMemory();
-    kprint_hex();
+    initialise_paging();
     
     
     kprint("Type something, it will go through the kernel\n"
@@ -25,11 +27,25 @@ void user_input(char *input) {
         kprint("Stopping the CPU. Bye!\n");
         asm volatile("hlt");
     } else if (strcmp(input, "MEM") == 0){
-        GetFreeBlock(6);
-    } else if (strcmp(input, "BLOCKS") == 0){
-        PrintBlocks();
+        
+        
+        ptr = kmalloc(0x100000);
+        
+        
+        kprint_hex(ptr);
+    
+    } else if (strcmp(input, "FREE") == 0){
+        kfree(ptr);
     }
     kprint("You said: ");
     kprint(input);
     kprint("\n> ");
+}
+
+void ASSERT(_Bool b){
+    if(b){
+        return;
+    }else{
+        kprint("Wrong Assertion");
+    }
 }

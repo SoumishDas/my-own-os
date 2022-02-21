@@ -1,7 +1,7 @@
-#include "../libc/mem.h"
-#include "../cpu/isr.h"
-#include "../drivers/screen.h"
-
+#include "../../libc/mem.h"
+#include "../../cpu/isr.h"
+#include "../../drivers/screen.h"
+#include "kheap.h"
 #ifndef PAGING_H
 #define PAGING_H
 
@@ -64,5 +64,9 @@ page_t *get_page(uint32_t address, int make, page_directory_t *dir);
   Handler for page faults.
 **/
 void page_fault(registers_t regs);
+
+void alloc_frame(page_t *page, int is_kernel, int is_writeable);
+void alloc_particular_frame(page_t *page, int is_kernel, int is_writeable,uint32_t idx);
+void free_frame(page_t *page);
 
 #endif

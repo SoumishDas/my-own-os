@@ -3,5 +3,6 @@
 
 
 void user_input(char *input);
+void ASSERT(_Bool b);
 
 #endif
