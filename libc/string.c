@@ -1,6 +1,6 @@
 #include "string.h"
 #include <stdint.h>
-
+#include "mem.h"
 /**
  * K&R implementation
  */
@@ -75,5 +75,82 @@ int strcmp(char s1[], char s2[]) {
     }
     return s1[i] - s2[i];
 }
+
+void strpartialcpy(char dest[],char src[], int nbytes)
+{
+    int i = 0;
+    while (i<nbytes)
+    {
+        dest[i] = src[i];
+
+        if (dest[i] == '\0')
+        {
+            break;
+        }
+
+        i++;
+    }
+    dest[nbytes]='\0';
+}
+
+void strcpy(char dest[], const char source[])
+{
+    int i = 0;
+    while (1)
+    {
+        dest[i] = source[i];
+
+        if (dest[i] == '\0')
+        {
+            break;
+        }
+
+        i++;
+    } 
+}
+
+int strsplitwords(char s1[],char *wordlist[]){
+    int i,tempIndex,lastSpaceIndex,wordlistIndex;
+    i=0;
+    tempIndex=0;
+    lastSpaceIndex=-1;
+    wordlistIndex=0;
+    
+
+    
+    while (1) {
+        
+        if ((s1[i] == ' ' || s1[i] == '\0') && i!=0 && (i-lastSpaceIndex>1)){
+            kprint("x");
+            tempIndex = lastSpaceIndex+1;
+            uint8_t *ptr= kmalloc(i-tempIndex);
+            
+            wordlist[wordlistIndex] = ptr;
+            strpartialcpy(ptr,&s1[tempIndex],i-tempIndex);
+            
+            lastSpaceIndex = i;
+            wordlistIndex++;     
+        }
+        i++;
+        if(i>0){if(s1[i-1] == '\0'){break;}}
+    }
+    return wordlistIndex;
+}
+
+unsigned int ascii_to_int(char str[] )
+{ 
+    // Initialize a variable 
+    int num = 0; 
+    int n = strlen(str); 
+  
+    // Iterate till length of the string 
+    for (int i = 0; i < n; i++){
+  
+        // Subtract 48 from the current digit 
+        num = num * 10 + ((int)(str[i]) - 48); 
+    }
+    // Print the answer 
+    n = num; 
+} 
 
 char *boolstring( _Bool b ) { return b ? "true" : "false"; }

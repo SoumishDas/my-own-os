@@ -23,23 +23,7 @@ void kernel_main() {
 }
 
 void user_input(char *input) {
-    if (strcmp(input, "END") == 0) {
-        kprint("Stopping the CPU. Bye!\n");
-        asm volatile("hlt");
-    } else if (strcmp(input, "MEM") == 0){
-        
-        
-        ptr = kmalloc(0x100000);
-        
-        
-        kprint_hex(ptr);
-    
-    } else if (strcmp(input, "FREE") == 0){
-        kfree(ptr);
-    }
-    kprint("You said: ");
-    kprint(input);
-    kprint("\n> ");
+    execute_command(input);
 }
 
 void ASSERT(_Bool b){

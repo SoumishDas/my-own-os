@@ -257,7 +257,7 @@ void *alloc(uint32_t size, uint8_t page_align, heap_t *heap)
         // Put the new hole in the index;
         insert_ordered_array((void*)hole_header, &heap->index);
     }
-    kprint_hex(heap->end_address);
+    
     // ...And we're done!
     return (void *) ( (uint32_t)block_header+sizeof(header_t) );
 }
