@@ -87,6 +87,7 @@ make install-gcc
 make install-target-libgcc 
 ```
 
+Now Finally clone adn run the kernel
 ```bash
   git clone https://github.com/SoumishDas/My-Own-OS.git
   cd My-Own-OS
