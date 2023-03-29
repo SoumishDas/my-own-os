@@ -1,8 +1,7 @@
 
 # My-Own-OS
 
-My-Own-OS is a bootloader and basic kernel made using ASM & C. Anyone can use this repository to understand how a OS works on
-on a fundamental level and modify it to add functionality or tweak around to grasp how things work.
+My-Own-OS is a bootloader and basic kernel made using ASM & C. Anyone can use this repository to understand how a OS works on a fundamental level and modify it to add functionality or tweak around to grasp how things work.
 
 The Code is written is a easy to read for format for beginners to understand how a simple OS functions.
 
@@ -64,30 +63,30 @@ binutils
 ```sh
 mkdir /tmp/src
 cd /tmp/src
-curl -O http://ftp.gnu.org/gnu/binutils/binutils-2.24.tar.gz # If the link 404's, look for a more recent version
-tar xf binutils-2.24.tar.gz
+curl -O http://ftp.gnu.org/gnu/binutils/binutils-2.40.tar.gz # If the link 404's, look for a more recent version
+tar xf binutils-2.40.tar.gz
 mkdir binutils-build
 cd binutils-build
-../binutils-2.24/configure --target=$TARGET --enable-interwork --enable-multilib --disable-nls --disable-werror --prefix=$PREFIX 2>&1 | tee configure.log
-make all install 2>&1 | tee make.log
+../binutils-2.40/configure --target=$TARGET --enable-interwork --enable-multilib --disable-nls --disable-werror --prefix=$PREFIX 2>&1 | tee configure.log
+sudo make all install 2>&1 | tee make.log
 ```
 
 gcc
 ---
 ```sh
 cd /tmp/src
-curl -O https://ftp.gnu.org/gnu/gcc/gcc-4.9.1/gcc-4.9.1.tar.bz2
-tar xf gcc-4.9.1.tar.bz2
+curl -O https://ftp.gnu.org/gnu/gcc/gcc-12.2.0/gcc-12.2.0.tar.gz
+tar xf gcc-12.2.0.tar.gz
 mkdir gcc-build
 cd gcc-build
-../gcc-4.9.1/configure --target=$TARGET --prefix="$PREFIX" --disable-nls --disable-libssp --enable-languages=c --without-headers
-make all-gcc 
-make all-target-libgcc 
-make install-gcc 
-make install-target-libgcc 
+../gcc-12.2.0/configure --target=$TARGET --prefix="$PREFIX" --disable-nls --disable-libssp --enable-languages=c --without-headers
+sudo make all-gcc 
+sudo make all-target-libgcc 
+sudo make install-gcc 
+sudo make install-target-libgcc 
 ```
 
-Now Finally clone adn run the kernel
+Now Finally clone and run the kernel
 ```bash
   git clone https://github.com/SoumishDas/My-Own-OS.git
   cd My-Own-OS

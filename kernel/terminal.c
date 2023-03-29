@@ -12,11 +12,15 @@ void execute_command(char *input){
         
         
         unsigned int a = ascii_to_int(wordlist[1]);
-        kprint_int(a);
-        kprint_hex(kmalloc(a));
+        //kprint_int(a);
+        kprint("\n");
+        kprint_int(kmalloc(a));
+        kprint("\n");
     
     } else if (strcmp(wordlist[0], "FREE") == 0){
         
+        // void* a = ascii_to_int(wordlist[1]);
+        // kfree(a);
         kprint("free");
 
     }
