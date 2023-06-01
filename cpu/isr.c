@@ -1,11 +1,5 @@
 #include "isr.h"
 
-#include "../drivers/screen.h"
-#include "../drivers/keyboard.h"
-#include "../libc/string.h"
-#include "timer.h"
-#include "ports.h"
-
 isr_t interrupt_handlers[256];
 
 /* Can't do this with a loop because we need the address
@@ -122,15 +116,15 @@ void isr_handler(registers_t *r) {
         isr_t handler = interrupt_handlers[r->int_no];
         handler(r);
     }else{
-        kprint("received interrupt: ");
-        char s[3];
-        int_to_ascii(r->int_no, s);
-        kprint(s);
-        kprint("\n");
-        kprint(exception_messages[r->int_no]);
-        kprint("\n");
-        kprint_hex(r->eip);
-        kprint("\n");
+        // kprint("received interrupt: ");
+        // char s[3];
+        // int_to_ascii(r->int_no, s);
+        // kprint(s);
+        // kprint("\n");
+        // kprint(exception_messages[r->int_no]);
+        // kprint("\n");
+        // kprint_hex(r->eip);
+        // kprint("\n");
     }
 }
 
@@ -151,11 +145,4 @@ void irq_handler(registers_t *r) {
     }
 }
 
-void irq_install() {
-    /* Enable interruptions */
-    asm volatile("sti");
-    /* IRQ0: timer */
-    init_timer(50);
-    /* IRQ1: keyboard */
-    init_keyboard();
-}
+

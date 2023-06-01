@@ -1,4 +1,3 @@
-#C_SOURCES = $(wildcard kernel/*.c drivers/*.c cpu/*.c libc/*.c)
 C_SOURCES = $(wildcard */*.c */*/*.c)
 HEADERS = $(wildcard kernel/*.h drivers/*.h cpu/*.h libc/*.h)
 # Nice syntax for file extension replacement

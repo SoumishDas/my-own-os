@@ -2,6 +2,9 @@
 #define SCREEN_H
 
 #include"../libc/string.h"
+#include "../cpu/ports.h"
+#include "../libc/mem.h"
+#include <stdint.h>
 
 #define VIDEO_ADDRESS 0xb8000
 #define MAX_ROWS 25

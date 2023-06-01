@@ -1,6 +1,5 @@
 #include "mem.h"
 
-extern heap_t *kheap;
 
 void memcpy(uint8_t *source, uint8_t *dest, int nbytes) {
     int i;
@@ -17,14 +16,13 @@ void memset(uint8_t *dest, uint8_t val, uint32_t len) {
 /* This should be computed at link time, but a hardcoded
  * value is fine for now. Remember that our kernel starts
  * at 0x1000 as defined on the Makefile */
-uint32_t placement_address = 0x10000;
+//uint32_t placement_address =  0x10000;
 //uint32_t placement_address = 0x20000000;
 
 /* Implementation is just a pointer to some free memory which
  * keeps growing */
 
-extern page_directory_t *kernel_directory;
-extern heap_t *kheap;
+
 
 uint32_t kmalloc_int(uint32_t sz, int align, uint32_t *phys)
 {

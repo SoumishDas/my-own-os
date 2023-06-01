@@ -1,6 +1,5 @@
 #include "string.h"
-#include <stdint.h>
-#include "mem.h"
+
 /**
  * K&R implementation
  */
@@ -121,7 +120,7 @@ int strsplitwords(char s1[],char *wordlist[]){
     while (1) {
         
         if ((s1[i] == ' ' || s1[i] == '\0') && i!=0 && (i-lastSpaceIndex>1)){
-            kprint("x");
+            
             tempIndex = lastSpaceIndex+1;
             uint8_t *ptr= kmalloc(i-tempIndex);
             
@@ -129,7 +128,10 @@ int strsplitwords(char s1[],char *wordlist[]){
             strpartialcpy(ptr,&s1[tempIndex],i-tempIndex);
             
             lastSpaceIndex = i;
-            wordlistIndex++;     
+            wordlistIndex++;
+            
+            
+            
         }
         i++;
         if(i>0){if(s1[i-1] == '\0'){break;}}

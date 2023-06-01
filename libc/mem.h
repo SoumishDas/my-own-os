@@ -2,8 +2,9 @@
 #define MEM_H
 
 #include <stdint.h>
-#include <stddef.h>
-#include "../kernel/memory_allocator/kheap.h"
+#include "../kernel/memory_allocator/mem_vars.h"
+
+
 
 void memcpy(uint8_t *source, uint8_t *dest, int nbytes);
 void memset(uint8_t *dest, uint8_t val, uint32_t len);

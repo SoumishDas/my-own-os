@@ -1,6 +1,9 @@
 #ifndef STRINGS_H
 #define STRINGS_H
 
+#include <stdint.h>
+#include "mem.h"
+
 void int_to_ascii(int n, char str[]);
 void hex_to_ascii(int n, char str[]);
 unsigned int ascii_to_int(char str[] );

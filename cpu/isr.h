@@ -2,6 +2,12 @@
 #define ISR_H
 
 #include <stdint.h>
+#include "register.h"
+//#include "../drivers/screen.h"
+
+#include "../libc/string.h"
+
+#include "ports.h"
 
 /* ISRs reserved for CPU exceptions */
 extern void isr0();
@@ -71,23 +77,11 @@ extern void irq15();
 #define IRQ14 46
 #define IRQ15 47
 
-/* Struct which aggregates many registers.
- * It matches exactly the pushes on interrupt.asm. From the bottom:
- * - Pushed by the processor automatically
- * - `push byte`s on the isr-specific code: error code, then int number
- * - All the registers by pusha
- * - `push eax` whose lower 16-bits contain DS
- */
-typedef struct {
-   uint32_t ds; /* Data segment selector */
-   uint32_t edi, esi, ebp, useless, ebx, edx, ecx, eax; /* Pushed by pusha. */
-   uint32_t int_no, err_code; /* Interrupt number and error code (if applicable) */
-   uint32_t eip, cs, eflags, esp, ss; /* Pushed by the processor automatically */
-} registers_t;
+
 
 void isr_install();
 void isr_handler(registers_t *r);
-void irq_install();
+
 
 typedef void (*isr_t)(registers_t*);
 void register_interrupt_handler(uint8_t n, isr_t handler);

@@ -4,11 +4,8 @@
 
 
 #include "kheap.h"
-#include "paging.h"
 
 
-extern heap_t *kheap;
-extern page_directory_t *kernel_directory;
 
 static void expand(uint32_t new_size, heap_t *heap)
 {
@@ -175,6 +172,7 @@ void *alloc(uint32_t size, uint8_t page_align, heap_t *heap)
         // If we didn't find ANY headers, we need to add one.
         if (idx == -1)
         {
+            
             header_t *header = (header_t *)old_end_address;
             header->magic = HEAP_MAGIC;
             header->size = new_length - old_length;
@@ -264,6 +262,7 @@ void *alloc(uint32_t size, uint8_t page_align, heap_t *heap)
 
 void free(void *p, heap_t *heap)
 {
+     
     // Exit gracefully for null pointers.
     if (p == 0)
         return;
@@ -275,7 +274,10 @@ void free(void *p, heap_t *heap)
     // Sanity checks.
     ASSERT(header->magic == HEAP_MAGIC);
     ASSERT(footer->magic == HEAP_MAGIC);
-
+    //kprint("\n");
+    //kprint_hex(HEAP_MAGIC);
+    // Footer Magic is 0x12389000 instead of 0x123890AB
+    //kprint_hex(footer->magic);
     // Make us a hole.
     header->is_hole = 1;
 

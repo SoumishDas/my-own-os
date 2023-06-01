@@ -1,18 +1,6 @@
 #include"paging.h"
 
-extern heap_t *kheap;
 
-// A bitset of frames - used or free.
-uint32_t *frames;
-uint32_t nframes;
-page_directory_t *kernel_directory;
-page_directory_t *current_directory;
-// Defined in kheap.c
-extern uint32_t placement_address;
-
-// Macros used in the bitset algorithms.
-#define INDEX_FROM_BIT(a) (a/(8*4))
-#define OFFSET_FROM_BIT(a) (a%(8*4))
 
 // Static function to set a bit in the frames bitset
 static void set_frame(uint32_t frame_addr)
@@ -124,6 +112,73 @@ void free_frame(page_t *page)
    }
 }
 
+
+
+void switch_page_directory(page_directory_t *dir)
+{
+   current_directory = dir;
+   asm volatile("mov %0, %%cr3":: "r"(&dir->tablesPhysical));
+   uint32_t cr0;
+   asm volatile("mov %%cr0, %0": "=r"(cr0));
+   cr0 |= 0x80000000; // Enable paging!
+   asm volatile("mov %0, %%cr0":: "r"(cr0));
+}
+
+page_t *get_page(uint32_t address, int make, page_directory_t *dir)
+{
+   // Turn the address into an index.
+   address /= 0x1000;
+   // Find the page table containing this address.
+   uint32_t table_idx = address / 1024;
+   if (dir->tables[table_idx]) // If this table is already assigned
+   {
+       return &dir->tables[table_idx]->pages[address%1024];
+   }
+   else if(make)
+   {
+       uint32_t tmp;
+       dir->tables[table_idx] = (page_table_t*)kmalloc_ap_PT(sizeof(page_table_t), &tmp);
+       kprint_hex(tmp);
+       memset(dir->tables[table_idx], 0, 0x1000);
+       dir->tablesPhysical[table_idx] = tmp | 0x7; // PRESENT, RW, US.
+       return &dir->tables[table_idx]->pages[address%1024];
+   }
+   else
+   {
+       return 0;
+   }
+}
+
+void page_fault(registers_t regs)
+{
+   // A page fault has occurred.
+   // The faulting address is stored in the CR2 register.
+   uint32_t faulting_address;
+   asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
+    
+   // The error code gives us details of what happened.
+   int present   = !(regs.err_code & 0x1); // Page not present
+   int rw = regs.err_code & 0x2;           // Write operation?
+   int us = regs.err_code & 0x4;           // Processor was in user-mode?
+   int reserved = regs.err_code & 0x8;     // Overwritten CPU-reserved bits of page entry?
+   int id = regs.err_code & 0x10;          // Caused by an instruction fetch?
+
+   // Output an error message.
+   kprint_at("Page fault! ( ",0,1);
+   if (present) {kprint("present ");}
+   if (rw) {kprint("read-only ");}
+   if (us) {kprint("user-mode ");}
+   if (reserved) {kprint("reserved ");}
+   kprint(") at ");
+   kprint_hex(faulting_address);
+   kprint("instruction:");
+   kprint_hex(regs.eip);
+   kprint("\n");
+   kprint("Page fault");
+   asm ("hlt");
+   //regs.eip+=1;
+}
+
 void initialise_paging()
 {
    // The size of physical memory. For the moment we
@@ -207,69 +262,4 @@ void initialise_paging()
     
    // Initialise the kernel heap.
    kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE, 0xCFFFF000, 0, 0);
-}
-
-void switch_page_directory(page_directory_t *dir)
-{
-   current_directory = dir;
-   asm volatile("mov %0, %%cr3":: "r"(&dir->tablesPhysical));
-   uint32_t cr0;
-   asm volatile("mov %%cr0, %0": "=r"(cr0));
-   cr0 |= 0x80000000; // Enable paging!
-   asm volatile("mov %0, %%cr0":: "r"(cr0));
-}
-
-page_t *get_page(uint32_t address, int make, page_directory_t *dir)
-{
-   // Turn the address into an index.
-   address /= 0x1000;
-   // Find the page table containing this address.
-   uint32_t table_idx = address / 1024;
-   if (dir->tables[table_idx]) // If this table is already assigned
-   {
-       return &dir->tables[table_idx]->pages[address%1024];
-   }
-   else if(make)
-   {
-       uint32_t tmp;
-       dir->tables[table_idx] = (page_table_t*)kmalloc_ap_PT(sizeof(page_table_t), &tmp);
-       kprint_hex(tmp);
-       memset(dir->tables[table_idx], 0, 0x1000);
-       dir->tablesPhysical[table_idx] = tmp | 0x7; // PRESENT, RW, US.
-       return &dir->tables[table_idx]->pages[address%1024];
-   }
-   else
-   {
-       return 0;
-   }
-}
-
-void page_fault(registers_t regs)
-{
-   // A page fault has occurred.
-   // The faulting address is stored in the CR2 register.
-   uint32_t faulting_address;
-   asm volatile("mov %%cr2, %0" : "=r" (faulting_address));
-    
-   // The error code gives us details of what happened.
-   int present   = !(regs.err_code & 0x1); // Page not present
-   int rw = regs.err_code & 0x2;           // Write operation?
-   int us = regs.err_code & 0x4;           // Processor was in user-mode?
-   int reserved = regs.err_code & 0x8;     // Overwritten CPU-reserved bits of page entry?
-   int id = regs.err_code & 0x10;          // Caused by an instruction fetch?
-
-   // Output an error message.
-   kprint_at("Page fault! ( ",0,1);
-   if (present) {kprint("present ");}
-   if (rw) {kprint("read-only ");}
-   if (us) {kprint("user-mode ");}
-   if (reserved) {kprint("reserved ");}
-   kprint(") at ");
-   kprint_hex(faulting_address);
-   kprint("instruction:");
-   kprint_hex(regs.eip);
-   kprint("\n");
-   kprint("Page fault");
-   asm ("hlt");
-   //regs.eip+=1;
 }
