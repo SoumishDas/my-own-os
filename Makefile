@@ -1,47 +1,54 @@
-C_SOURCES = $(wildcard */*.c */*/*.c)
-HEADERS = $(wildcard kernel/*.h drivers/*.h cpu/*.h libc/*.h)
-# Nice syntax for file extension replacement
-OBJ = ${C_SOURCES:.c=.o cpu/interrupt.o} 
-
-# Change this if your cross-compiler is somewhere else
+CFLAGS=-g -std=gnu99 -ffreestanding -O2 -Wall -Wextra
 CC = /usr/local/i386elfgcc/bin/i386-elf-gcc
-GDB = /usr/local/i386elfgcc/bin/i386-elf-gdb
-LD = /usr/local/i386elfgcc/bin/i386-elf-ld
-# -g: Use debugging symbols in gcc
-CFLAGS = -g -ffreestanding -Wall -Wextra -fno-exceptions -m32
+LDFLAGS=-T linker.ld -ffreestanding -O2 -nostdlib -lgcc
+ASFLAGS=-f elf32
+SRC_DIR := ./src
+BUILD_DIR := ./build
 
-# First rule is run by default
-os-image.bin: boot/bootsect.bin kernel.bin
-	cat $^ > os-image.bin
+# Locate all source files recursively in the source directory and its subdirectories
+SOURCES := $(wildcard $(SRC_DIR)/**/*.c $(SRC_DIR)/**/*.s)
+OBJECTS := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SOURCES))
+OBJECTS := $(patsubst $(SRC_DIR)/%.s,$(BUILD_DIR)/%.o,$(OBJECTS))
 
-# '--oformat binary' deletes all symbols as a collateral, so we don't need
-# to 'strip' them manually on this case
-kernel.bin: boot/kernel_entry.o ${OBJ}
-	${LD} -o $@ -Ttext 0x1000 $^ --oformat binary
+#CRTI_OBJ=$(BUILD_DIR)/crti.o
+CRTBEGIN_OBJ:=$(shell $(CC) $(CFLAGS) -print-file-name=crtbegin.o)
+CRTEND_OBJ:=$(shell $(CC) $(CFLAGS) -print-file-name=crtend.o)
+#CRTN_OBJ=$(BUILD_DIR)/crtn.o
 
-# Used for debugging purposes
-kernel.elf: boot/kernel_entry.o ${OBJ}
-	${LD} -o $@ -Ttext 0x1000 $^ 
+OBJ_LINK_LIST:= $(CRTBEGIN_OBJ) $(OBJECTS) $(CRTEND_OBJ) 
+INTERNAL_OBJS:= $(OBJECTS) 
 
-run: os-image.bin
-	qemu-system-i386 -fda os-image.bin -m 5G
+run : all
+	qemu-system-x86_64 -kernel myos.bin -m 4G
+# type=pc-i440fx-3.1
+run_iso: iso
+	qemu-system-x86_64 -cdrom myos.iso -m 4G
 
 # Open the connection to qemu and load our kernel-object file with symbols
-debug: os-image.bin kernel.elf
-	qemu-system-i386 -s -fda os-image.bin -d guest_errors,int &
-	${GDB} -ex "target remote localhost:1234" -ex "symbol-file kernel.elf"
+debug: all
+	qemu-system-i386 -m 4G -s -S -kernel myos.bin -d guest_errors,int &
+	gdb -ex "target remote localhost:1234" -ex "symbol-file myos.bin" -ex "set arch i386"
 
-# Generic rules for wildcards
-# To make an object, always compile from its .c
-%.o: %.c ${HEADERS}
-	${CC} ${CFLAGS} -c $< -o $@
+iso: all
+	mkdir -p isodir/boot/grub
+	cp myos.bin isodir/boot/myos.bin
+	cp grub.cfg isodir/boot/grub/grub.cfg
+	grub-mkrescue -o myos.iso isodir
 
-%.o: %.asm
-	nasm $< -f elf -o $@
-
-%.bin: %.asm
-	nasm $< -f bin -o $@
+all: $(OBJ_LINK_LIST) link
+	./check_multiboot.sh
 
 clean:
-	rm -rf *.bin *.dis *.o os-image.bin *.elf
-	rm -rf kernel/*.o boot/*.bin drivers/*.o boot/*.o cpu/*.o libc/*.o
+	-rm -rf $(INTERNAL_OBJS) myos.bin
+
+link:
+	$(CC) -o myos.bin $(LDFLAGS) $(OBJ_LINK_LIST)
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.s | $(BUILD_DIR)
+	nasm $(ASFLAGS) $< -o $@
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)

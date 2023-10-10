@@ -3,3 +3,4 @@
 os-image.bin
 *.elf
 *.o
+/POC
