@@ -17,8 +17,8 @@ The Code is written is a easy to read for format for beginners to understand how
 - Screen output and keyboard input - DONE!
 - A tiny, basic libc which grows to suit our needs - DONE!
 - Memory management - WIP
-- Write a filesystem to store files
-- Create a very simple shell
+- Write a filesystem to store files - INITRD DONE!
+- Create a very simple shell - WIP
 - User mode
 - Maybe we will write a simple text editor
 - Multiple processes and scheduling
@@ -39,6 +39,7 @@ First, install the required packages. On linux, use your package distribution.
 - mpfr
 - libmpc
 - gcc 
+- nasm
 
 Once installed, find where your packaged gcc is and export it. For example:
 
