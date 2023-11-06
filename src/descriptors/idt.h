@@ -36,7 +36,7 @@ typedef struct {
 
 
 /* Functions implemented in idt.c */
-void set_idt_gate(int n, uint32_t handler);
+void set_idt_gate(int n, uint32_t handler, int is_user);
 void set_idt();
 
 #endif

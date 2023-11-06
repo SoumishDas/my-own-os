@@ -2,11 +2,12 @@
 
 
 uint32_t tick = 0;
+extern void switch_task();
 
 static void timer_callback(registers_t *regs) {
     //tick++;
     UNUSED(regs);
-    
+    switch_task();
 }
 
 void init_timer(uint32_t freq) {

@@ -11,4 +11,4 @@ page_directory_t *kernel_directory;
 page_directory_t *current_directory;
 
 
-uint32_t placement_address = 0x10000;
+uint32_t placement_address;

@@ -13,7 +13,7 @@
   Causes the specified page directory to be loaded into the
   CR3 register.
 **/
-void switch_page_directory(page_directory_t *new);
+void switch_page_directory(page_directory_t *dir);
 
 /**
   Retrieves a pointer to the page required.
@@ -30,6 +30,10 @@ void page_fault(registers_t regs);
 void alloc_frame(page_t *page, int is_kernel, int is_writeable);
 void alloc_particular_frame(page_t *page, int is_kernel, int is_writeable,uint32_t idx);
 void free_frame(page_t *page);
+
+
+
+page_directory_t *clone_directory(page_directory_t *src);
 
 // Implemented in kheap.c
 /* At this stage there is no 'free' implemented. */

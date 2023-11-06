@@ -25,11 +25,12 @@ stack_bottom:
 stack_top:
 section .data
 
-    extern kernel_main
+    
 ; The linker script specifies _start as the entry point to the kernel,
 ; and the bootloader will jump to this position once the kernel has been loaded.
 ; It doesn't make sense to return from this function as the bootloader is gone.
 section .text
+extern kernel_main
 global _start
 _start:
     ; To set up a stack, we set the esp register to point to the top of the stack
@@ -44,6 +45,9 @@ _start:
     ; not initialized yet. The GDT should be loaded here. Paging should be enabled here.
     ; C++ features such as global constructors and exceptions will require runtime support
     ; to work as well.
+    
+    push esp
+    push ebx
 
     ; Enter the high-level kernel. The ABI requires the stack is 16-byte aligned at
     ; the time of the call instruction (which afterwards pushes the return pointer

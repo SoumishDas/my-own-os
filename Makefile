@@ -1,4 +1,4 @@
-CFLAGS=-g -std=gnu99 -ffreestanding -O2 -Wall -Wextra
+CFLAGS=-g -std=gnu99 -ffreestanding -O0 -Wall -Wextra
 CC = /usr/local/i386elfgcc/bin/i386-elf-gcc
 LDFLAGS=-T linker.ld -ffreestanding -O2 -nostdlib -lgcc
 ASFLAGS=-f elf32
@@ -33,6 +33,7 @@ iso: all
 	mkdir -p isodir/boot/grub
 	cp myos.bin isodir/boot/myos.bin
 	cp grub.cfg isodir/boot/grub/grub.cfg
+	cp initrd.img isodir/boot/
 	grub-mkrescue -o myos.iso isodir
 
 all: $(OBJ_LINK_LIST) link

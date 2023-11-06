@@ -352,28 +352,42 @@ void free(void *p, heap_t *heap)
 
 }
 
+
+
 void initialise_paging()
 {
+
    // The size of physical memory. For the moment we
    // assume it is 16MB big.
-   uint32_t mem_end_page = 0xE0000000;
+   uint32_t mem_end_page = 0xF0000000;
 
    nframes = mem_end_page / 0x1000;
-   frames = (uint8_t*)kmalloc(INDEX_FROM_BIT(nframes));
+   frames = (uint32_t*)kmalloc(INDEX_FROM_BIT(nframes));
    memset(frames, 0, INDEX_FROM_BIT(nframes));
 
+
    // Let's make a page directory.
-   kernel_directory = (page_directory_t*)kmalloc_ap_PT(sizeof(page_directory_t),0);
+   //uint32_t phys; // ********** ADDED ***********
+   kernel_directory = (page_directory_t*)kmalloc_a(sizeof(page_directory_t));
    memset(kernel_directory, 0, sizeof(page_directory_t));
-   current_directory = kernel_directory;
+   kernel_directory->physicalAddr = (uint32_t)kernel_directory->tablesPhysical;
+   
     
-    int i = 0;
-    for (i = 0x20000000; i < 0x200ff000+KHEAP_INITIAL_SIZE; i += 0x1000){
-       alloc_particular_frame( get_page(i, 0, kernel_directory), 0, 0,i/0x1000);
-       
+   // We need to identity map (phys addr = virt addr) from
+   // 0x0 to the end of used memory, so we can access this
+   // transparently, as if paging wasn't enabled.
+   // NOTE that we use a while loop here deliberately.
+   // inside the loop body we actually change placement_address
+   // by calling kmalloc(). A while loop causes this to be
+   // computed on-the-fly rather than once at the start.
+   int i = 0;
+   while (i < placement_address + 0x5000 )
+   {
+       // Kernel code is readable but not writeable from userspace.
+       alloc_frame( get_page(i, 1, kernel_directory), 0, 1);
+       i += 0x1000;
    }
-
-
+    
    // Map some pages in the kernel heap area.
    // Here we call get_page but not alloc_frame. This causes page_table_t's
    // to be created where necessary. We can't allocate frames yet because they
@@ -383,58 +397,27 @@ void initialise_paging()
    for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000){
        get_page(i, 1, kernel_directory);
    }
-
-   i = 0xb8000;
-   
-   while (i < 0xcf000)
-   {
-       // Kernel code is readable but not writeable from userspace.
-       get_page(i, 1, kernel_directory);
-       i += 0x1000;
-       
-   }
-
-   // We need to identity map (phys addr = virt addr) from
-   // 0x0 to the end of used memory, so we can access this
-   // transparently, as if paging wasn't enabled.
-   // NOTE that we use a while loop here deliberately.
-   // inside the loop body we actually change placement_address
-   // by calling kmalloc(). A while loop causes this to be
-   // computed on-the-fly rather than once at the start.
-   
-
-   i = 0;
-   while (i < placement_address+0x100000)
-   {
-       // Kernel code is readable but not writeable from userspace.
-       alloc_frame( get_page(i, 1, kernel_directory), 0, 0);
-       i += 0x1000;
-   }
-    
-   // Monitor Vga buffer Paging
-   i = 0xb8000;
-   
-   while (i < 0xcf000)
-   {
-       // Kernel code is readable but not writeable from userspace.
-       alloc_particular_frame( get_page(i, 0, kernel_directory), 0, 0,i/0x1000);
-       i += 0x1000;
-       
-   }
-
       // Now allocate those pages we mapped earlier.
    for (i = KHEAP_START; i < KHEAP_START+KHEAP_INITIAL_SIZE; i += 0x1000){
        alloc_frame( get_page(i, 0, kernel_directory), 0, 0);
        
    }
+   
    // Before we enable paging, we must register our page fault handler.
    register_interrupt_handler(14, page_fault);
+
+
 
    // Now, enable paging!
    switch_page_directory(kernel_directory);
     
    // Initialise the kernel heap.
    kheap = create_heap(KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE, 0xCFFFF000, 0, 0);
+
+    current_directory = clone_directory(kernel_directory);
+    
+    switch_page_directory(current_directory);
+    
 }
 
 
@@ -451,7 +434,7 @@ uint32_t kmalloc_int(uint32_t sz, int align, uint32_t *phys)
         if (phys != 0)
         {
             page_t *page = get_page((uint32_t)addr, 0, kernel_directory);
-            *phys = page->frame*0x1000 + (uint32_t)addr&0xFFF;
+            *phys = page->frame*0x1000 + ((uint32_t)addr&0xFFF);
         }
         return (uint32_t)addr;
     }

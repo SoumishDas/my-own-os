@@ -43,6 +43,7 @@ extern void isr28();
 extern void isr29();
 extern void isr30();
 extern void isr31();
+extern void isr128();
 /* IRQ definitions */
 extern void irq0();
 extern void irq1();
@@ -86,5 +87,8 @@ void isr_handler(registers_t *r);
 
 typedef void (*isr_t)(registers_t*);
 void register_interrupt_handler(uint8_t n, isr_t handler);
+
+
+
 
 #endif
