@@ -10,7 +10,7 @@
 static void expand(uint32_t new_size, heap_t *heap)
 {
     // Sanity check.
-    ASSERT(new_size > heap->end_address - heap->start_address);
+    assert(new_size > heap->end_address - heap->start_address);
 
     // Get the nearest following page boundary.
     if ((new_size&0xFFFFF000) != 0)
@@ -20,7 +20,7 @@ static void expand(uint32_t new_size, heap_t *heap)
     }
 
     // Make sure we are not overreaching ourselves.
-    ASSERT(heap->start_address+new_size <= heap->max_address);
+    assert(heap->start_address+new_size <= heap->max_address);
 
     // This should always be on a page boundary.
     uint32_t old_size = heap->end_address-heap->start_address;
@@ -38,7 +38,7 @@ static void expand(uint32_t new_size, heap_t *heap)
 static uint32_t contract(uint32_t new_size, heap_t *heap)
 {
     // Sanity check.
-    ASSERT(new_size < heap->end_address-heap->start_address);
+    assert(new_size < heap->end_address-heap->start_address);
 
     // Get the nearest following page boundary.
     if (new_size&0x1000)
@@ -104,8 +104,8 @@ heap_t *create_heap(uint32_t start, uint32_t end_addr, uint32_t max, uint8_t sup
     heap_t *heap = (heap_t*)kmalloc(sizeof(heap_t));
 
     // All our assumptions are made on startAddress and endAddress being page-aligned.
-    ASSERT(start%0x1000 == 0);
-    ASSERT(end_addr%0x1000 == 0);
+    assert(start%0x1000 == 0);
+    assert(end_addr%0x1000 == 0);
     
     // Initialise the index.
     heap->index = place_ordered_array( (void*)start, HEAP_INDEX_SIZE, &header_t_less_than);
@@ -272,8 +272,8 @@ void free(void *p, heap_t *heap)
     footer_t *footer = (footer_t*) ( (uint32_t)header + header->size - sizeof(footer_t) );
 
     // Sanity checks.
-    ASSERT(header->magic == HEAP_MAGIC);
-    ASSERT(footer->magic == HEAP_MAGIC);
+    assert(header->magic == HEAP_MAGIC);
+    assert(footer->magic == HEAP_MAGIC);
     //kprint("\n");
     //kprint_hex(HEAP_MAGIC);
     // Footer Magic is 0x12389000 instead of 0x123890AB
@@ -314,7 +314,7 @@ void free(void *p, heap_t *heap)
             iterator++;
 
         // Make sure we actually found the item.
-        ASSERT(iterator < heap->index.size);
+        assert(iterator < heap->index.size);
         // Remove it.
         remove_ordered_array(iterator, &heap->index);
     }

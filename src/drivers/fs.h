@@ -8,11 +8,20 @@
 
 #define FS_FILE        0x01
 #define FS_DIRECTORY   0x02
-#define FS_CHARDEVICE  0x03
-#define FS_BLOCKDEVICE 0x04
-#define FS_PIPE        0x05
-#define FS_SYMLINK     0x06
-#define FS_MOUNTPOINT  0x08 // Is the file an active mountpoint?
+#define FS_CHARDEVICE  0x04
+#define FS_BLOCKDEVICE 0x08
+#define FS_PIPE        0x10
+#define FS_SYMLINK     0x20
+#define FS_MOUNTPOINT  0x40 // Is the file an active mountpoint?
+
+#define	_IFMT		0170000	/* type of file */
+#define		_IFDIR	0040000	/* directory */
+#define		_IFCHR	0020000	/* character special */
+#define		_IFBLK	0060000	/* block special */
+#define		_IFREG	0100000	/* regular */
+#define		_IFLNK	0120000	/* symbolic link */
+#define		_IFSOCK	0140000	/* socket */
+#define		_IFIFO	0010000	/* fifo */
 
 struct fs_node;
 

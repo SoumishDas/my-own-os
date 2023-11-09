@@ -1,9 +1,11 @@
 #include "misc.h"
 
-void ASSERT(_Bool b){
-    if(b){
-        return;
-    }else{
-        //kprint("Wrong Assertion");
-    }
+assert_failed(char *file, int line, char *statement){
+    
+    kprint("ASSERTION FAILED\nFile: ");
+    kprint(file);
+    kprint(":");
+    kprint_int(line);
+    kprint("\nError at:");
+    kprint(statement);
 }

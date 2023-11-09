@@ -38,7 +38,7 @@ void destroy_ordered_array(ordered_array_t *array)
 
 void insert_ordered_array(type_t item, ordered_array_t *array)
 {
-   ASSERT(array->less_than);
+   assert(array->less_than);
    uint32_t iterator = 0;
    while (iterator < array->size && array->less_than(array->array[iterator], item))
        iterator++;
@@ -61,7 +61,7 @@ void insert_ordered_array(type_t item, ordered_array_t *array)
 
 type_t lookup_ordered_array(uint32_t i, ordered_array_t *array)
 {
-   ASSERT(i < array->size);
+   assert(i < array->size);
    return array->array[i];
 }
 

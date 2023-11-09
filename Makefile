@@ -19,7 +19,7 @@ OBJ_LINK_LIST:= $(CRTBEGIN_OBJ) $(OBJECTS) $(CRTEND_OBJ)
 INTERNAL_OBJS:= $(OBJECTS) 
 
 run : all
-	qemu-system-x86_64 -kernel myos.bin -m 4G
+	qemu-system-x86_64 -kernel myos.bin -m 4G -drive file=hdd.img,format=raw
 # type=pc-i440fx-3.1
 run_iso: iso
 	qemu-system-x86_64 -cdrom myos.iso -m 4G

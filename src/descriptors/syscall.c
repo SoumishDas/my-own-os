@@ -22,7 +22,7 @@ uint32_t num_syscalls = 4;
 void initialise_syscalls()
 {
     // Register our syscall handler.
-    register_interrupt_handler (0x80, &syscall_handler);
+    register_interrupt_handler (SYSCALL_VECTOR, &syscall_handler);
 }
 
 void syscall_handler(registers_t *regs)

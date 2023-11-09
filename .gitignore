@@ -4,3 +4,5 @@ os-image.bin
 *.elf
 *.o
 /POC
+*.iso
+*.img
