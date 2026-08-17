@@ -1,0 +1,9 @@
+task.o: task.c task.h common.h paging.h isr.h kheap.h ordered_array.h \
+ descriptor_tables.h
+task.h:
+common.h:
+paging.h:
+isr.h:
+kheap.h:
+ordered_array.h:
+descriptor_tables.h:

@@ -1,0 +1,571 @@
+
+Merging object attributes
+
+
+There are no discarded input sections
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+
+.text           0x00100000     0x6000
+                0x00100000                        code = .
+                0x00100000                        _code = .
+                0x00100000                        __code = .
+ *(.text)
+ .text          0x00100000       0x2a boot.o
+                0x00100000                mboot
+                0x00100020                start
+ .text          0x0010002a      0x343 common.o
+                0x0010002a                outb
+                0x00100049                inb
+                0x00100066                inw
+                0x00100085                memcpy
+                0x001000bf                memset
+                0x001000f1                strcmp
+                0x00100194                strncmp
+                0x001001ed                strcpy
+                0x0010021d                strcat
+                0x0010025d                strlen
+                0x00100285                panic
+                0x001002f9                panic_assert
+ .text          0x0010036d      0x7fa descriptor_tables.o
+                0x0010036d                init_descriptor_tables
+                0x00100599                set_kernel_stack
+ .text          0x00100b67      0x1aa fs.o
+                0x00100b67                read_fs
+                0x00100bb0                write_fs
+                0x00100bf9                open_fs
+                0x00100c37                close_fs
+                0x00100c69                readdir_fs
+                0x00100cba                finddir_fs
+ .text          0x00100d11      0x79a initrd.o
+                0x00100eec                initialise_initrd
+ .text          0x001014ab       0xe5 isr.o
+                0x001014ab                register_interrupt_handler
+                0x001014c8                isr_handler
+                0x00101534                irq_handler
+ .text          0x00101590      0x136 keyboard.o
+                0x0010164c                initialise_keyboard
+                0x00101682                keyboard_getchar
+ .text          0x001016c6     0x12a0 kheap.o
+                0x001016c6                kmalloc_int
+                0x00101824                kfree
+                0x00101861                kmalloc_a
+                0x0010187b                kmalloc_p
+                0x00101896                kmalloc_ap
+                0x001018b1                kmalloc
+                0x00101f43                create_heap
+                0x0010213d                alloc
+                0x00102569                free
+ .text          0x00102966      0x171 main.o
+                0x00102966                main
+ .text          0x00102ad7      0x478 monitor.o
+                0x00102bec                monitor_put
+                0x00102d14                monitor_clear
+                0x00102d6b                monitor_write
+                0x00102daf                monitor_write_hex
+                0x00102e75                monitor_write_dec
+ .text          0x00102f4f      0x48e ordered_array.o
+                0x00102f4f                standard_lessthan_predicate
+                0x00102f5f                create_ordered_array
+                0x0010302e                place_ordered_array
+                0x0010310b                destroy_ordered_array
+                0x0010317a                insert_ordered_array
+                0x001032a2                lookup_ordered_array
+                0x00103318                remove_ordered_array
+ .text          0x001033dd      0xb66 paging.o
+                0x001035c9                alloc_frame
+                0x001036c7                free_frame
+                0x00103760                invalidate_page
+                0x0010376c                paging_total_memory_kib
+                0x00103779                initialise_paging
+                0x00103a7c                switch_page_directory
+                0x00103aac                get_page
+                0x00103b7d                page_fault
+                0x00103e20                clone_directory
+ .text          0x00103f43      0x618 shell.o
+                0x00104446                shell_run
+ .text          0x0010455b      0x398 syscall.o
+                0x001047a9                initialise_syscalls
+                0x001047c7                syscall_write
+                0x001047e5                syscall_putchar
+                0x0010480a                syscall_clear
+                0x0010481f                syscall_getchar
+                0x00104834                syscall_readdir
+                0x00104856                syscall_readfile
+                0x00104878                syscall_getpid
+                0x0010488d                syscall_write_hex
+                0x001048ab                syscall_write_dec
+                0x001048c9                syscall_ticks
+                0x001048de                syscall_memory_kib
+ .text          0x001048f3      0x3f6 task.o
+                0x001048f3                initialise_tasking
+                0x0010499f                move_stack
+                0x00104a8e                switch_task
+                0x00104b9c                fork
+                0x00104c99                getpid
+                0x00104ca5                switch_to_user_mode
+ .text          0x00104ce9       0xd5 timer.o
+                0x00104d04                timer_ticks
+                0x00104d0e                init_timer
+ *fill*         0x00104dbe        0x2 
+ .text          0x00104dc0       0x2d gdt.o
+                0x00104dc0                gdt_flush
+                0x00104ddd                idt_flush
+                0x00104de5                tss_flush
+ *fill*         0x00104ded        0x3 
+ .text          0x00104df0      0x201 interrupt.o
+                0x00104df0                isr0
+                0x00104dfa                isr1
+                0x00104e04                isr2
+                0x00104e0e                isr3
+                0x00104e18                isr4
+                0x00104e22                isr5
+                0x00104e2c                isr6
+                0x00104e36                isr7
+                0x00104e40                isr8
+                0x00104e48                isr9
+                0x00104e52                isr10
+                0x00104e5a                isr11
+                0x00104e62                isr12
+                0x00104e6a                isr13
+                0x00104e72                isr14
+                0x00104e7a                isr15
+                0x00104e84                isr16
+                0x00104e8e                isr17
+                0x00104e98                isr18
+                0x00104ea2                isr19
+                0x00104eac                isr20
+                0x00104eb6                isr21
+                0x00104ec0                isr22
+                0x00104eca                isr23
+                0x00104ed4                isr24
+                0x00104ede                isr25
+                0x00104ee8                isr26
+                0x00104ef2                isr27
+                0x00104efc                isr28
+                0x00104f06                isr29
+                0x00104f10                isr30
+                0x00104f1a                isr31
+                0x00104f24                isr128
+                0x00104f2e                irq0
+                0x00104f38                irq1
+                0x00104f42                irq2
+                0x00104f4c                irq3
+                0x00104f53                irq4
+                0x00104f5a                irq5
+                0x00104f61                irq6
+                0x00104f68                irq7
+                0x00104f6f                irq8
+                0x00104f76                irq9
+                0x00104f7d                irq10
+                0x00104f84                irq11
+                0x00104f8b                irq12
+                0x00104f92                irq13
+                0x00104f99                irq14
+                0x00104fa0                irq15
+ *fill*         0x00104ff1        0xf 
+ .text          0x00105000       0x3b process.o
+                0x00105000                read_eip
+                0x00105003                copy_page_physical
+                0x00106000                        . = ALIGN (0x1000)
+ *fill*         0x0010503b      0xfc5 
+
+.iplt           0x00106000        0x0
+ .iplt          0x00106000        0x0 boot.o
+
+.rel.dyn        0x00106000        0x0
+ .rel.got       0x00106000        0x0 boot.o
+ .rel.iplt      0x00106000        0x0 boot.o
+ .rel.text      0x00106000        0x0 boot.o
+ .rel.data      0x00106000        0x0 boot.o
+
+.data           0x00106000     0x1000
+                0x00106000                        data = .
+                0x00106000                        _data = .
+                0x00106000                        __data = .
+ *(.data)
+ .data          0x00106000        0x0 common.o
+ .data          0x00106000        0x0 descriptor_tables.o
+ .data          0x00106000        0x0 fs.o
+ .data          0x00106000        0x0 initrd.o
+ .data          0x00106000        0x0 isr.o
+ .data          0x00106000        0x0 keyboard.o
+ .data          0x00106000        0x4 kheap.o
+                0x00106000                placement_address
+ .data          0x00106004        0x0 main.o
+ .data          0x00106004        0x4 monitor.o
+                0x00106004                video_memory
+ .data          0x00106008        0x0 ordered_array.o
+ .data          0x00106008        0x0 paging.o
+ .data          0x00106008        0x0 shell.o
+ *fill*         0x00106008       0x18 
+ .data          0x00106020       0x2c syscall.o
+ .data          0x0010604c        0x4 task.o
+                0x0010604c                next_pid
+ .data          0x00106050        0x0 timer.o
+ *(.rodata)
+ .rodata        0x00106050       0x23 common.o
+ *fill*         0x00106073        0x1 
+ .rodata        0x00106074      0x170 initrd.o
+ .rodata        0x001061e4       0x16 isr.o
+ *fill*         0x001061fa        0x6 
+ .rodata        0x00106200      0x100 keyboard.o
+ .rodata        0x00106300      0x51f kheap.o
+ *fill*         0x0010681f        0x1 
+ .rodata        0x00106820       0xb0 main.o
+ .rodata        0x001068d0        0x3 monitor.o
+ *fill*         0x001068d3        0x1 
+ .rodata        0x001068d4       0xbd ordered_array.o
+ *fill*         0x00106991        0x3 
+ .rodata        0x00106994      0x12c paging.o
+ .rodata        0x00106ac0      0x3d4 shell.o
+ .rodata        0x00106e94       0x39 timer.o
+                0x00107000                        . = ALIGN (0x1000)
+ *fill*         0x00106ecd      0x133 
+
+.got            0x00107000        0x0
+ .got           0x00107000        0x0 boot.o
+
+.got.plt        0x00107000        0x0
+ .got.plt       0x00107000        0x0 boot.o
+
+.igot.plt       0x00107000        0x0
+ .igot.plt      0x00107000        0x0 boot.o
+
+.bss            0x00107000     0x1000
+                0x00107000                        bss = .
+                0x00107000                        _bss = .
+                0x00107000                        __bss = .
+ *(.bss)
+ .bss           0x00107000        0x0 common.o
+ .bss           0x00107000      0x8c8 descriptor_tables.o
+                0x00107000                gdt_entries
+                0x00107030                gdt_ptr
+                0x00107040                idt_entries
+                0x00107840                idt_ptr
+                0x00107860                tss_entry
+ .bss           0x001078c8        0x4 fs.o
+                0x001078c8                fs_root
+ *fill*         0x001078cc       0x14 
+ .bss           0x001078e0       0xac initrd.o
+                0x001078e0                initrd_header
+                0x001078e4                file_headers
+                0x001078e8                initrd_root
+                0x001078ec                initrd_dev
+                0x001078f0                root_nodes
+                0x001078f4                nroot_nodes
+                0x00107900                dirent
+ *fill*         0x0010798c       0x14 
+ .bss           0x001079a0      0x400 isr.o
+                0x001079a0                interrupt_handlers
+ .bss           0x00107da0       0x89 keyboard.o
+ *fill*         0x00107e29        0x3 
+ .bss           0x00107e2c        0x4 kheap.o
+                0x00107e2c                kheap
+ .bss           0x00107e30        0x4 main.o
+                0x00107e30                initial_esp
+ .bss           0x00107e34        0x2 monitor.o
+                0x00107e34                cursor_x
+                0x00107e35                cursor_y
+ .bss           0x00107e36        0x0 ordered_array.o
+ *fill*         0x00107e36        0x2 
+ .bss           0x00107e38       0x14 paging.o
+                0x00107e38                kernel_directory
+                0x00107e3c                current_directory
+                0x00107e40                frames
+                0x00107e44                nframes
+ .bss           0x00107e4c        0x0 shell.o
+ .bss           0x00107e4c        0x0 syscall.o
+ .bss           0x00107e4c        0x8 task.o
+                0x00107e4c                current_task
+                0x00107e50                ready_queue
+ .bss           0x00107e54        0x4 timer.o
+                0x00108000                        . = ALIGN (0x1000)
+ *fill*         0x00107e58      0x1a8 
+                0x00108000                        end = .
+                0x00108000                        _end = .
+                0x00108000                        __end = .
+LOAD boot.o
+LOAD common.o
+LOAD descriptor_tables.o
+LOAD fs.o
+LOAD initrd.o
+LOAD isr.o
+LOAD keyboard.o
+LOAD kheap.o
+LOAD main.o
+LOAD monitor.o
+LOAD ordered_array.o
+LOAD paging.o
+LOAD shell.o
+LOAD syscall.o
+LOAD task.o
+LOAD timer.o
+LOAD gdt.o
+LOAD interrupt.o
+LOAD process.o
+OUTPUT(kernel elf32-i386)
+
+.debug_aranges  0x00000000      0x260
+ .debug_aranges
+                0x00000000       0x20 boot.o
+ .debug_aranges
+                0x00000020       0x20 common.o
+ .debug_aranges
+                0x00000040       0x20 descriptor_tables.o
+ .debug_aranges
+                0x00000060       0x20 fs.o
+ .debug_aranges
+                0x00000080       0x20 initrd.o
+ .debug_aranges
+                0x000000a0       0x20 isr.o
+ .debug_aranges
+                0x000000c0       0x20 keyboard.o
+ .debug_aranges
+                0x000000e0       0x20 kheap.o
+ .debug_aranges
+                0x00000100       0x20 main.o
+ .debug_aranges
+                0x00000120       0x20 monitor.o
+ .debug_aranges
+                0x00000140       0x20 ordered_array.o
+ .debug_aranges
+                0x00000160       0x20 paging.o
+ .debug_aranges
+                0x00000180       0x20 shell.o
+ .debug_aranges
+                0x000001a0       0x20 syscall.o
+ .debug_aranges
+                0x000001c0       0x20 task.o
+ .debug_aranges
+                0x000001e0       0x20 timer.o
+ .debug_aranges
+                0x00000200       0x20 gdt.o
+ .debug_aranges
+                0x00000220       0x20 interrupt.o
+ .debug_aranges
+                0x00000240       0x20 process.o
+
+.debug_pubnames
+                0x00000000        0x0
+ .debug_pubnames
+                0x00000000        0x0 boot.o
+ .debug_pubnames
+                0x00000000        0x0 gdt.o
+ .debug_pubnames
+                0x00000000        0x0 interrupt.o
+ .debug_pubnames
+                0x00000000        0x0 process.o
+
+.debug_info     0x00000000     0x5248
+ .debug_info    0x00000000       0x5e boot.o
+ .debug_info    0x0000005e      0x3da common.o
+ .debug_info    0x00000438      0x8f6 descriptor_tables.o
+ .debug_info    0x00000d2e      0x3c1 fs.o
+ .debug_info    0x000010ef      0x557 initrd.o
+ .debug_info    0x00001646      0x29b isr.o
+ .debug_info    0x000018e1      0x2c7 keyboard.o
+ .debug_info    0x00001ba8      0xb8e kheap.o
+ .debug_info    0x00002736      0x4fb main.o
+ .debug_info    0x00002c31      0x2d0 monitor.o
+ .debug_info    0x00002f01      0x30a ordered_array.o
+ .debug_info    0x0000320b      0x96f paging.o
+ .debug_info    0x00003b7a      0x322 shell.o
+ .debug_info    0x00003e9c      0xb55 syscall.o
+ .debug_info    0x000049f1      0x4ca task.o
+ .debug_info    0x00004ebb      0x26c timer.o
+ .debug_info    0x00005127       0x5d gdt.o
+ .debug_info    0x00005184       0x63 interrupt.o
+ .debug_info    0x000051e7       0x61 process.o
+
+.debug_abbrev   0x00000000     0x196d
+ .debug_abbrev  0x00000000       0x1d boot.o
+ .debug_abbrev  0x0000001d      0x130 common.o
+ .debug_abbrev  0x0000014d      0x1c5 descriptor_tables.o
+ .debug_abbrev  0x00000312      0x130 fs.o
+ .debug_abbrev  0x00000442      0x1a2 initrd.o
+ .debug_abbrev  0x000005e4      0x13e isr.o
+ .debug_abbrev  0x00000722      0x144 keyboard.o
+ .debug_abbrev  0x00000866      0x2ea kheap.o
+ .debug_abbrev  0x00000b50      0x16c main.o
+ .debug_abbrev  0x00000cbc      0x12f monitor.o
+ .debug_abbrev  0x00000deb      0x13c ordered_array.o
+ .debug_abbrev  0x00000f27      0x314 paging.o
+ .debug_abbrev  0x0000123b      0x157 shell.o
+ .debug_abbrev  0x00001392      0x219 syscall.o
+ .debug_abbrev  0x000015ab      0x224 task.o
+ .debug_abbrev  0x000017cf      0x147 timer.o
+ .debug_abbrev  0x00001916       0x1d gdt.o
+ .debug_abbrev  0x00001933       0x1d interrupt.o
+ .debug_abbrev  0x00001950       0x1d process.o
+
+.debug_line     0x00000000     0x2492
+ .debug_line    0x00000000       0x42 boot.o
+ .debug_line    0x00000042      0x21c common.o
+ .debug_line    0x0000025e      0x189 descriptor_tables.o
+ .debug_line    0x000003e7      0x126 fs.o
+ .debug_line    0x0000050d      0x34e initrd.o
+ .debug_line    0x0000085b       0xa6 isr.o
+ .debug_line    0x00000901       0xfc keyboard.o
+ .debug_line    0x000009fd      0x74b kheap.o
+ .debug_line    0x00001148       0xec main.o
+ .debug_line    0x00001234      0x218 monitor.o
+ .debug_line    0x0000144c      0x22e ordered_array.o
+ .debug_line    0x0000167a      0x4a3 paging.o
+ .debug_line    0x00001b1d      0x2aa shell.o
+ .debug_line    0x00001dc7      0x23c syscall.o
+ .debug_line    0x00002003      0x232 task.o
+ .debug_line    0x00002235       0x9a timer.o
+ .debug_line    0x000022cf       0x44 gdt.o
+ .debug_line    0x00002313      0x130 interrupt.o
+ .debug_line    0x00002443       0x4f process.o
+
+.debug_frame    0x00000000     0x1060
+ .debug_frame   0x00000000        0x0 boot.o
+ .debug_frame   0x00000000      0x184 common.o
+ .debug_frame   0x00000184       0xf4 descriptor_tables.o
+ .debug_frame   0x00000278       0xd4 fs.o
+ .debug_frame   0x0000034c       0xa4 initrd.o
+ .debug_frame   0x000003f0       0x74 isr.o
+ .debug_frame   0x00000464       0x74 keyboard.o
+ .debug_frame   0x000004d8      0x200 kheap.o
+ .debug_frame   0x000006d8       0x48 main.o
+ .debug_frame   0x00000720       0xf4 monitor.o
+ .debug_frame   0x00000814       0xf4 ordered_array.o
+ .debug_frame   0x00000908      0x1e4 paging.o
+ .debug_frame   0x00000aec       0xec shell.o
+ .debug_frame   0x00000bd8      0x338 syscall.o
+ .debug_frame   0x00000f10       0xdc task.o
+ .debug_frame   0x00000fec       0x74 timer.o
+ .debug_frame   0x00001060        0x0 gdt.o
+ .debug_frame   0x00001060        0x0 interrupt.o
+ .debug_frame   0x00001060        0x0 process.o
+
+.debug_loc      0x00000000        0x0
+ .debug_loc     0x00000000        0x0 boot.o
+ .debug_loc     0x00000000        0x0 gdt.o
+ .debug_loc     0x00000000        0x0 interrupt.o
+ .debug_loc     0x00000000        0x0 process.o
+
+.debug_str      0x00000000     0x126f
+ .debug_str     0x00000000     0x126f common.o
+                                0x1bd (size before relaxing)
+ .debug_str     0x0000126f        0x0 descriptor_tables.o
+                                0x45f (size before relaxing)
+ .debug_str     0x0000126f        0x0 fs.o
+                                0x224 (size before relaxing)
+ .debug_str     0x0000126f        0x0 initrd.o
+                                0x304 (size before relaxing)
+ .debug_str     0x0000126f        0x0 isr.o
+                                0x1db (size before relaxing)
+ .debug_str     0x0000126f        0x0 keyboard.o
+                                0x210 (size before relaxing)
+ .debug_str     0x0000126f        0x0 kheap.o
+                                0x55f (size before relaxing)
+ .debug_str     0x0000126f        0x0 main.o
+                                0x435 (size before relaxing)
+ .debug_str     0x0000126f        0x0 monitor.o
+                                0x1fb (size before relaxing)
+ .debug_str     0x0000126f        0x0 ordered_array.o
+                                0x242 (size before relaxing)
+ .debug_str     0x0000126f        0x0 paging.o
+                                0x4d6 (size before relaxing)
+ .debug_str     0x0000126f        0x0 shell.o
+                                0x26b (size before relaxing)
+ .debug_str     0x0000126f        0x0 syscall.o
+                                0x577 (size before relaxing)
+ .debug_str     0x0000126f        0x0 task.o
+                                0x33c (size before relaxing)
+ .debug_str     0x0000126f        0x0 timer.o
+                                0x1d2 (size before relaxing)
+
+.debug_line_str
+                0x00000000      0x14e
+ .debug_line_str
+                0x00000000      0x14e common.o
+                                 0x84 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 descriptor_tables.o
+                                 0xb5 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 fs.o
+                                 0x73 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 initrd.o
+                                 0x90 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 isr.o
+                                 0x81 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 keyboard.o
+                                 0x86 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 kheap.o
+                                 0x98 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 main.o
+                                 0xe1 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 monitor.o
+                                 0x7d (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 ordered_array.o
+                                 0xa7 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 paging.o
+                                 0xab (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 shell.o
+                                 0x81 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 syscall.o
+                                 0xbf (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 task.o
+                                 0xa0 (size before relaxing)
+ .debug_line_str
+                0x0000014e        0x0 timer.o
+                                 0x84 (size before relaxing)
+
+.comment        0x00000000       0x12
+ .comment       0x00000000       0x12 common.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 descriptor_tables.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 fs.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 initrd.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 isr.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 keyboard.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 kheap.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 main.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 monitor.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 ordered_array.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 paging.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 shell.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 syscall.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 task.o
+                                 0x13 (size before relaxing)
+ .comment       0x00000012        0x0 timer.o
+                                 0x13 (size before relaxing)
+
+.debug_rnglists
+                0x00000000       0x17
+ .debug_rnglists
+                0x00000000       0x17 kheap.o
