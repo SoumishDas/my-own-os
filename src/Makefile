@@ -42,7 +42,7 @@ ASFLAGS        ?= -g -F dwarf
 
 .DEFAULT_GOAL := all
 
-.PHONY: all image run clean userspace help
+.PHONY: all image run clean userspace help newlib-image run-newlib
 
 all: $(TARGET)
 
@@ -55,7 +55,14 @@ $(INITRD_BUILDER): ../make_initrd.c
 $(INITRD_IMAGE): userspace $(INITRD_BUILDER) ../test.txt ../test2.txt
 	cd .. && ./make_initrd test.txt test.txt \
 		test2.txt docs/guides/test2.txt \
-		user/bin/hello bin/hello
+		user/bin/hello bin/hello \
+		user/bin/args bin/args \
+		user/bin/heapdemo bin/heapdemo \
+		user/bin/status bin/status \
+		user/bin/sigdemo bin/sigdemo \
+		user/bin/abicheck bin/abicheck \
+		user/bin/readcheck bin/readcheck \
+		user/bin/shell bin/shell
 
 $(TARGET): $(OBJECTS) $(LINKER_SCRIPT)
 	$(LD) $(ARCH_LDFLAGS) $(LDFLAGS) -Map $(MAP_FILE) -o $@ $(OBJECTS)
@@ -71,6 +78,24 @@ image: $(TARGET) $(FLOPPY_IMAGE) $(INITRD_IMAGE)
 run: image
 	$(QEMU) -drive file=$(FLOPPY_IMAGE),format=raw,if=floppy -boot a
 
+# Package an already built optional Newlib demonstration without making every
+# normal kernel build depend on an external Newlib installation.
+newlib-image: image
+	@test -f $(USER_DIRECTORY)/bin/newlib-demo || \
+		(echo "Build user/newlib-demo first"; exit 1)
+	cd .. && ./make_initrd test.txt test.txt \
+		test2.txt docs/guides/test2.txt \
+		user/bin/hello bin/hello user/bin/args bin/args \
+		user/bin/heapdemo bin/heapdemo user/bin/status bin/status \
+		user/bin/sigdemo bin/sigdemo user/bin/abicheck bin/abicheck \
+		user/bin/readcheck bin/readcheck user/bin/shell bin/shell \
+		user/bin/newlib-demo bin/newlib-demo
+	-$(DEBUGFS) -w -R "rm /initrd" $(FLOPPY_IMAGE)
+	$(DEBUGFS) -w -R "write $(INITRD_IMAGE) /initrd" $(FLOPPY_IMAGE)
+
+run-newlib: newlib-image
+	$(QEMU) -drive file=$(FLOPPY_IMAGE),format=raw,if=floppy -boot a
+
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(ARCH_CFLAGS) $(WARN_CFLAGS) $(CFLAGS) $(DEPFLAGS) -c $< -o $@
 
@@ -78,7 +103,7 @@ run: image
 	$(NASM) $(ARCH_ASFLAGS) $(ASFLAGS) $< -o $@
 
 clean:
-	$(RM) $(OBJECTS) $(DEP_FILES) $(TARGET) $(MAP_FILE)
+	$(RM) $(OBJECTS) $(DEP_FILES) $(TARGET) $(MAP_FILE) shell.o shell.d
 	$(MAKE) -C $(USER_DIRECTORY) clean
 
 help:
@@ -87,6 +112,8 @@ help:
 	@echo "  image  Build and copy the kernel/initrd into $(FLOPPY_IMAGE)"
 	@echo "  userspace  Build standalone ELF32 user programs"
 	@echo "  run    Update the floppy image and boot it with QEMU"
+	@echo "  newlib-image  Package an already-built user/bin/newlib-demo"
+	@echo "  run-newlib    Package Newlib demo and boot it with QEMU"
 	@echo "  clean  Remove generated objects, dependencies, kernel, and map file"
 	@echo ""
 	@echo "Optional overrides: CROSS_COMPILE, CC, LD, NASM, DEBUGFS, QEMU,"

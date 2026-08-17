@@ -1,35 +1,9 @@
 /* First independently linked program loaded from /bin/hello by execve(). */
-#include "syscall.h"
+#include "userlib.h"
 
 /* Force the ELF to contain both initialized data and zero-filled BSS. */
 static uint32_t initialized_data_cookie = 0x13579BDF;
 static uint32_t zero_filled_bss_cookie;
-
-static uint32_t string_length(const char *text)
-{
-    uint32_t length = 0;
-    while (text[length] != '\0')
-        length++;
-    return length;
-}
-
-static void print(const char *text)
-{
-    write(1, text, string_length(text));
-}
-
-static void print_unsigned(uint32_t value)
-{
-    char digits[10];
-    uint32_t count = 0;
-    do
-    {
-        digits[count++] = (char)('0' + value % 10);
-        value /= 10;
-    } while (value != 0);
-    while (count != 0)
-        write(1, &digits[--count], 1);
-}
 
 int main(int argc, char **argv)
 {
@@ -39,9 +13,7 @@ int main(int argc, char **argv)
         print("ELF data/BSS test: initialized and zero-filled bytes passed.\n");
     else
         print("ELF data/BSS test: segment contents are wrong.\n");
-    print("PID remained ");
-    print_unsigned((uint32_t)getpid());
-    print(" across execve.\n");
+    print_pid_line("hello");
 
     print("argc = ");
     print_unsigned((uint32_t)argc);
@@ -69,6 +41,6 @@ int main(int argc, char **argv)
             print("ELF heap test: memory verification failed.\n");
     }
 
-    print("main returned; SYS_EXIT is not implemented, so PID 2 will idle.\n");
+    print("hello is returning status 0 through SYS_EXIT.\n");
     return 0;
 }

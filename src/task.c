@@ -17,6 +17,7 @@
 #include "paging.h"
 #include "kheap.h"
 #include "descriptor_tables.h"
+#include "signal.h"
 
 // The currently running task.
 volatile task_t *current_task;
@@ -31,6 +32,7 @@ extern u32int initial_esp;
 extern u32int read_eip();
 /* Clear a frame by physical address without requiring it in the current CR3. */
 extern void zero_page_physical(u32int physical_address);
+extern void resume_user_frame(void);
 
 // The next available process ID.
 u32int next_pid = 1;
@@ -63,6 +65,8 @@ void initialise_tasking()
     current_task = ready_queue = (task_t*)kmalloc(sizeof(task_t));
     memset((void*)current_task, 0, sizeof(task_t));
     current_task->id = 0;
+    current_task->parent_id = -1;
+    current_task->state = TASK_RUNNABLE;
     current_task->esp = current_task->ebp = 0;
     current_task->eip = 0;
     current_task->page_directory = current_directory;
@@ -162,10 +166,19 @@ void switch_task()
     current_task->esp = esp;
     current_task->ebp = ebp;
     
-    // Get the next task to run.
-    current_task = current_task->next;
-    // If we fell off the end of the linked list start again at the beginning.
-    if (!current_task) current_task = ready_queue;
+    /*
+     * Select the next runnable entry.  Exited processes remain as zombies so a
+     * parent can read their status, but the scheduler must never enter them.
+     * PID 0 is permanently runnable, guaranteeing that this search terminates.
+     */
+    task_t *candidate = (task_t*)current_task;
+    do
+    {
+        candidate = candidate->next;
+        if (candidate == 0)
+            candidate = (task_t*)ready_queue;
+    } while (candidate->state != TASK_RUNNABLE);
+    current_task = candidate;
 
     eip = current_task->eip;
     esp = current_task->esp;
@@ -245,6 +258,8 @@ int create_initial_user_process(void (*entry)(void))
     }
 
     process->id = next_pid++;
+    process->parent_id = 0;
+    process->state = TASK_RUNNABLE;
     process->esp = USER_STACK_TOP;
     process->ebp = USER_STACK_TOP;
     process->eip = (u32int)entry;
@@ -365,6 +380,59 @@ int task_close_descriptor(int fd)
     return 0;
 }
 
+int task_seek_descriptor(int fd, s32int offset, int origin)
+{
+    file_descriptor_t *descriptor = task_get_descriptor(fd);
+    if (descriptor == 0 || descriptor->kind != FD_KIND_NODE ||
+        descriptor->node == 0)
+        return -1;
+
+    u32int base;
+    if (origin == 0)      base = 0;                        /* SEEK_SET */
+    else if (origin == 1) base = descriptor->offset;       /* SEEK_CUR */
+    else if (origin == 2) base = descriptor->node->length; /* SEEK_END */
+    else return -1;
+
+    u32int result;
+    if (offset >= 0)
+    {
+        if (base > 0x7FFFFFFFU || (u32int)offset > 0x7FFFFFFFU - base)
+            return -1;
+        result = base + (u32int)offset;
+    }
+    else
+    {
+        u32int magnitude = 0U - (u32int)offset;
+        if (magnitude > base)
+            return -1;
+        result = base - magnitude;
+    }
+    descriptor->offset = result;
+    return (int)result;
+}
+
+void task_wait_for_keyboard(void)
+{
+    task_t *task = (task_t*)current_task;
+    ASSERT(task != 0 && task->is_user_process && task->state == TASK_RUNNABLE);
+    task->state = TASK_WAITING_INPUT;
+    switch_task();
+    ASSERT(task->state == TASK_RUNNABLE);
+}
+
+void task_wake_keyboard_waiters(void)
+{
+    for (task_t *task = (task_t*)ready_queue; task != 0; task = task->next)
+        if (task->state == TASK_WAITING_INPUT)
+            task->state = TASK_RUNNABLE;
+}
+
+int task_has_pending_signal(void)
+{
+    task_t *task = (task_t*)current_task;
+    return task != 0 && task->pending_signals != 0;
+}
+
 fs_node_t *task_get_working_directory(void)
 {
     return current_task == 0 ? 0 : current_task->working_directory;
@@ -378,23 +446,22 @@ void task_set_working_directory(fs_node_t *directory)
 }
 
 
-// COPY ON WRITE IS TO BE IMPLEMENTED LATER
-int fork()
+int task_fork_from_frame(registers_t *parent_frame)
 {
-    // We are modifying kernel structures, and so cannot be interrupted.
-    asm volatile("cli");
-
-    // Take a pointer to this process' task struct for later reference.
+    ASSERT(parent_frame != 0);
     task_t *parent_task = (task_t*)current_task;
+    if (parent_task == 0 || !parent_task->is_user_process ||
+        parent_task->state != TASK_RUNNABLE)
+        return -1;
 
-    // Clone the address space.
+    /* Eagerly duplicate private user pages; kernel tables remain shared. */
     page_directory_t *directory = clone_directory(current_directory);
 
-    // Create a new process.
     task_t *new_task = (task_t*)kmalloc(sizeof(task_t));
+    memset(new_task, 0, sizeof(*new_task));
     new_task->id = next_pid++;
-    new_task->esp = new_task->ebp = 0;
-    new_task->eip = 0;
+    new_task->parent_id = parent_task->id;
+    new_task->state = TASK_RUNNABLE;
     new_task->page_directory = directory;
     new_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
     new_task->heap_start = parent_task->heap_start;
@@ -402,39 +469,95 @@ int fork()
     new_task->heap_mapped_end = parent_task->heap_mapped_end;
     new_task->heap_limit = parent_task->heap_limit;
     new_task->is_user_process = parent_task->is_user_process;
+    task_signal_inherit(new_task, parent_task);
     memcpy(new_task->descriptors, parent_task->descriptors,
            sizeof(new_task->descriptors));
     new_task->working_directory = parent_task->working_directory;
     new_task->next = 0;
 
-    // Add it to the end of the ready queue.
-    // Find the end of the ready queue...
+    /* File descriptions are inherited.  Notify node drivers of extra users. */
+    for (int fd = 0; fd < MAX_FILE_DESCRIPTORS; fd++)
+    {
+        if (new_task->descriptors[fd].kind == FD_KIND_NODE &&
+            new_task->descriptors[fd].node != 0)
+            open_fs(new_task->descriptors[fd].node, 1, 0);
+    }
+
+    /*
+     * Give the child its own kernel-resident copy of the syscall return frame.
+     * The scheduler loads this ESP and jumps to resume_user_frame(), whose IRET
+     * returns to the cloned ring-3 EIP/ESP.  Only EAX differs: child fork is 0.
+     */
+    u32int frame_address = new_task->kernel_stack + KERNEL_STACK_SIZE -
+                           sizeof(registers_t);
+    registers_t *child_frame = (registers_t*)frame_address;
+    memcpy(child_frame, parent_frame, sizeof(*child_frame));
+    child_frame->eax = 0;
+    new_task->esp = frame_address;
+    new_task->ebp = frame_address;
+    new_task->eip = (u32int)resume_user_frame;
+
     append_ready_task(new_task);
+    return new_task->id;
+}
 
-    // This will be the entry point for the new process.
-    u32int eip = read_eip();
+void task_exit(int status)
+{
+    task_t *process = (task_t*)current_task;
+    ASSERT(process != 0 && process->id != 0 && process->is_user_process);
 
-    // We could be the parent or the child here - check.
-    if (current_task == parent_task)
+    /* Release descriptor-level references now; memory waits for parent reaping. */
+    for (int fd = 0; fd < MAX_FILE_DESCRIPTORS; fd++)
     {
-        // We are the parent, so set up the esp/ebp/eip for our child.
-        u32int esp; asm volatile("mov %%esp, %0" : "=r"(esp));
-        u32int ebp; asm volatile("mov %%ebp, %0" : "=r"(ebp));
-        new_task->esp = esp;
-        new_task->ebp = ebp;
-        new_task->eip = eip;
-        // All finished: Reenable interrupts.
-        asm volatile("sti");
-
-        // And by convention return the PID of the child.
-        return new_task->id;
+        file_descriptor_t *descriptor = &process->descriptors[fd];
+        if (descriptor->kind == FD_KIND_NODE && descriptor->node != 0)
+            close_fs(descriptor->node);
+        memset(descriptor, 0, sizeof(*descriptor));
     }
-    else
+
+    process->exit_status = status;
+    process->state = TASK_ZOMBIE;
+
+    /* Inform a living parent. SIGCHLD defaults to ignored but may be caught. */
+    if (process->parent_id > 0)
+        task_signal_send(process->parent_id, SIGNAL_CHLD);
+
+    /* switch_task() skips this zombie and execution can never return here. */
+    switch_task();
+    PANIC("zombie process resumed after exit");
+    for (;;)
+        ;
+}
+
+int task_waitpid(int pid, int *status)
+{
+    task_t *parent = (task_t*)current_task;
+    if (parent == 0 || pid <= 0)
+        return -1;
+
+    task_t *previous = 0;
+    task_t *child = (task_t*)ready_queue;
+    while (child != 0)
     {
-        // We are the child - by convention return 0.
+        if (child->id == pid)
+            break;
+        previous = child;
+        child = child->next;
+    }
+    if (child == 0 || child->parent_id != parent->id)
+        return -1;
+    if (child->state != TASK_ZOMBIE)
         return 0;
-    }
 
+    if (status != 0)
+        *status = child->exit_status;
+
+    ASSERT(previous != 0); /* PID 0, the list head, cannot be waited upon. */
+    previous->next = child->next;
+    destroy_directory(child->page_directory);
+    kfree((void*)child->kernel_stack);
+    kfree(child);
+    return pid;
 }
 
 int getpid()

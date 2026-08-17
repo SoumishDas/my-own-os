@@ -52,10 +52,20 @@ typedef struct file_descriptor
     u32int flags;     /* Reserved for O_RDONLY/O_WRONLY/O_RDWR expansion. */
 } file_descriptor_t;
 
+typedef enum task_state
+{
+    TASK_RUNNABLE = 0,
+    TASK_WAITING_INPUT,
+    TASK_ZOMBIE
+} task_state_t;
+
 // This structure defines a 'task' - a process.
 typedef struct task
 {
     int id;                // Process ID.
+    int parent_id;         // PID allowed to collect this process with waitpid.
+    task_state_t state;    // Zombies own resources but are never scheduled.
+    int exit_status;       // Preserved after exit until the parent collects it.
     u32int esp, ebp;       // Stack and base pointers.
     u32int eip;            // Instruction pointer.
     page_directory_t *page_directory; // Page directory.
@@ -72,6 +82,17 @@ typedef struct task
     u32int heap_mapped_end; // Page-aligned end of already mapped heap pages.
     u32int heap_limit;      // Exclusive ceiling preventing stack/heap collision.
     u8int is_user_process;  // Zero for PID 0; nonzero for ring-3 processes.
+
+    /*
+     * Traditional (non-realtime) signals are represented by one pending bit
+     * and one handler address per signal number. Multiple identical signals
+     * coalesce. signal_active prevents nested handler frames until sigreturn.
+     */
+    u32int signal_handlers[32];
+    u32int pending_signals;
+    u32int signal_trampoline;
+    u8int signal_active;
+    u8int active_signal;
 
     file_descriptor_t descriptors[MAX_FILE_DESCRIPTORS];
     fs_node_t *working_directory; /* Base node for relative path resolution. */
@@ -104,12 +125,26 @@ u32int task_sbrk(s32int increment);
 file_descriptor_t *task_get_descriptor(int fd);
 int task_open_descriptor(fs_node_t *node, u32int flags);
 int task_close_descriptor(int fd);
+int task_seek_descriptor(int fd, s32int offset, int origin);
 fs_node_t *task_get_working_directory(void);
 void task_set_working_directory(fs_node_t *directory);
 
-// Forks the current process, spawning a new one with a different
-// memory space.
-int fork();
+/* Put the caller to sleep for stdin and wake sleepers after keyboard IRQ1. */
+void task_wait_for_keyboard(void);
+void task_wake_keyboard_waiters(void);
+int task_has_pending_signal(void);
+
+/* Clone a ring-3 process from the syscall return frame. */
+int task_fork_from_frame(registers_t *parent_frame);
+
+/* Mark the current process dead and switch away; this function never returns. */
+void task_exit(int status) __attribute__((noreturn));
+
+/*
+ * Return pid and collect a zombie child, 0 while it is still running, or -1
+ * when pid is not a child of the caller.  status may be null.
+ */
+int task_waitpid(int pid, int *status);
 
 // Causes the current process' stack to be forcibly moved to a new location.
 void move_stack(void *new_stack_start, u32int size);

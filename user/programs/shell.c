@@ -1,14 +1,11 @@
 /*
- * shell.c -- Small interactive command interpreter running at privilege ring 3.
+ * shell.c -- Standalone ELF32 command interpreter loaded as /bin/shell.
  *
- * This is user-mode code in the CPU privilege sense, but it is still linked
- * into the kernel ELF image. It communicates through int 0x80 and deliberately
- * avoids direct port I/O or direct filesystem calls. A future exec loader will
- * replace this linked-in arrangement with independently built user binaries.
+ * The kernel contains no command parser. PID 1 forks PID 2, PID 2 execs this
+ * image, and every operation below crosses int 0x80 through the tiny userspace
+ * runtime. Child programs are launched with fork -> execve -> waitpid.
  */
-#include "shell.h"
-#include "syscall.h"
-#include "common.h"
+#include "userlib.h"
 
 #define SHELL_LINE_SIZE 128
 #define SHELL_FILE_BUFFER_SIZE 256
@@ -16,16 +13,16 @@
 /*
  * These are the first tiny libc-like output helpers.  String length belongs in
  * userspace; the kernel receives an explicit byte count and therefore also
- * supports non-string/binary buffers through syscall_fd_write().
+ * supports non-string/binary buffers through write().
  */
-static int shell_write_bytes(const void *buffer, u32int count)
+static int shell_write_bytes(const void *buffer, uint32_t count)
 {
-    return syscall_fd_write(1, buffer, count);
+    return write(1, buffer, count);
 }
 
 static int shell_write(const char *text)
 {
-    return shell_write_bytes(text, (u32int)strlen(text));
+    return shell_write_bytes(text, (uint32_t)strlen(text));
 }
 
 static int shell_putchar(char character)
@@ -36,7 +33,7 @@ static int shell_putchar(char character)
 static void print_prompt(void)
 {
     char path[128];
-    if (syscall_getcwd(path, sizeof(path)) < 0)
+    if (getcwd(path, sizeof(path)) < 0)
         shell_write("?> ");
     else
     {
@@ -53,7 +50,7 @@ static void print_line(const char *text)
 
 static const char *arguments_after(const char *line, const char *command)
 {
-    u32int i = (u32int)strlen(command);
+    uint32_t i = (uint32_t)strlen(command);
     if (line[i] == ' ') return &line[i+1];
     return "";
 }
@@ -74,6 +71,8 @@ static void command_help(void)
     print_line("  mem           show RAM tracked by the frame allocator");
     print_line("  heaptest      grow this process's user heap across two pages");
     print_line("  exec PATH ... replace this shell with a static ELF32 program");
+    print_line("  run PATH ...  fork, execute, wait, then return to this shell");
+    print_line("  kill PID SIG  send a signal number to another process");
     print_line("  status        summarize this shell's current limitations");
     print_line("  about         identify the operating-system project");
 }
@@ -86,7 +85,7 @@ static void command_help(void)
  */
 static void command_heaptest(void)
 {
-    u8int *memory = (u8int*)syscall_sbrk(5000);
+    unsigned char *memory = (unsigned char*)sbrk(5000);
     if (memory == (void*)-1)
     {
         print_line("heaptest: sbrk failed");
@@ -103,28 +102,24 @@ static void command_heaptest(void)
 
     /* monitor_write_hex(), used by the syscall, already prints the 0x prefix. */
     shell_write("heaptest: 5000 writable bytes at ");
-    syscall_write_hex((u32int)memory);
+    write_hex((uint32_t)memory);
     shell_write("; new break ");
-    syscall_write_hex((u32int)syscall_sbrk(0));
+    write_hex((uint32_t)sbrk(0));
     shell_putchar('\n');
 }
 
-static void command_exec(char *arguments)
+static int split_words(char *text, char **argv, uint32_t maximum_arguments)
 {
-    /*
-     * Split the existing command-line buffer in place.  argv pointers therefore
-     * refer to PID 2's old user stack; execve copies every string into kernel
-     * memory before replacing that address space.
-     */
-    char *argv[9];
-    u32int argc = 0;
-    char *cursor = arguments;
-    while (*cursor != '\0' && argc < 8)
+    uint32_t argc = 0;
+    char *cursor = text;
+    for (;;)
     {
         while (*cursor == ' ')
             cursor++;
         if (*cursor == '\0')
             break;
+        if (argc == maximum_arguments)
+            return -1;
         argv[argc++] = cursor;
         while (*cursor != '\0' && *cursor != ' ')
             cursor++;
@@ -132,29 +127,106 @@ static void command_exec(char *arguments)
             *cursor++ = '\0';
     }
     argv[argc] = 0;
+    return (int)argc;
+}
+
+static void command_exec(char *arguments)
+{
+    /* execve copies these old-stack strings before discarding the shell image. */
+    char *argv[9];
+    int argc = split_words(arguments, argv, 8);
 
     if (argc == 0)
     {
         print_line("usage: exec PATH [ARG ...]");
         return;
     }
-    if (*cursor != '\0')
+    if (argc < 0)
     {
         print_line("exec: at most 8 arguments are currently supported");
         return;
     }
 
     /* Success never returns: IRET enters the new ELF program's _start. */
-    if (syscall_execve(argv[0], argv, 0) < 0)
+    if (execve(argv[0], argv, 0) < 0)
         print_line("exec: file missing, invalid, or unsupported ELF32");
+}
+
+static void command_run(char *arguments)
+{
+    char *argv[9];
+    int argc = split_words(arguments, argv, 8);
+    if (argc == 0)
+    {
+        print_line("usage: run PATH [ARG ...]");
+        return;
+    }
+    if (argc < 0)
+    {
+        print_line("run: at most 8 arguments are currently supported");
+        return;
+    }
+
+    int child_pid = fork();
+    if (child_pid < 0)
+    {
+        print_line("run: fork failed");
+        return;
+    }
+    if (child_pid == 0)
+    {
+        if (execve(argv[0], argv, 0) < 0)
+        {
+            print_line("run: child could not load executable");
+            _exit(127);
+        }
+    }
+
+    shell_write("run: started child PID ");
+    write_dec((uint32_t)child_pid);
+    shell_putchar('\n');
+
+    int status = 0;
+    int waited;
+    while ((waited = waitpid(child_pid, &status)) == 0)
+        asm volatile("pause");
+    if (waited < 0)
+    {
+        print_line("run: waitpid failed");
+        return;
+    }
+    shell_write("run: child exited with status ");
+    write_dec((uint32_t)status);
+    shell_putchar('\n');
+}
+
+static void command_kill(char *arguments)
+{
+    char *argv[3];
+    int argc = split_words(arguments, argv, 2);
+    if (argc != 2)
+    {
+        print_line("usage: kill PID SIGNAL");
+        return;
+    }
+
+    int process_id = atoi(argv[0]);
+    int signal_number = atoi(argv[1]);
+    if (process_id <= 0 || signal_number < 0 ||
+        kill(process_id, signal_number) < 0)
+    {
+        print_line("kill: invalid PID/signal or process does not exist");
+        return;
+    }
+    print_line(signal_number == 0 ? "kill: process exists" : "kill: signal queued");
 }
 
 static void command_ls(void)
 {
     char name[128];
-    u32int index = 0;
+    uint32_t index = 0;
     int result;
-    while ((result = syscall_readdir(index, name, sizeof(name))) > 0)
+    while ((result = readdir_name(index, name, sizeof(name))) > 0)
     {
         shell_write(name);
         shell_putchar('\n');
@@ -166,18 +238,18 @@ static void command_ls(void)
 static void command_cat(const char *name)
 {
     if (*name == '\0') { print_line("usage: cat FILE"); return; }
-    int fd = syscall_open(name, OPEN_READ_ONLY);
+    int fd = open(name, OPEN_READ_ONLY);
     if (fd < 0) { print_line("cat: file not found or not a regular file"); return; }
 
     char buffer[SHELL_FILE_BUFFER_SIZE];
     int bytes;
     char final_character = '\0';
-    while ((bytes = syscall_fd_read(fd, buffer, sizeof(buffer) - 1)) > 0)
+    while ((bytes = read(fd, buffer, sizeof(buffer) - 1)) > 0)
     {
         final_character = buffer[bytes - 1];
-        shell_write_bytes(buffer, (u32int)bytes);
+        shell_write_bytes(buffer, (uint32_t)bytes);
     }
-    syscall_close(fd);
+    close(fd);
     if (bytes < 0) { print_line("cat: read failed"); return; }
     if (final_character != '\n') shell_putchar('\n');
 }
@@ -186,44 +258,53 @@ static void execute_command(char *line)
 {
     if (*line == '\0') return;
     if (!strcmp(line, "help")) command_help();
-    else if (!strcmp(line, "clear")) syscall_clear();
+    else if (!strcmp(line, "clear")) clear_screen();
     else if (!strcmp(line, "ls")) command_ls();
     else if (!strcmp(line, "pwd")) {
         char path[128];
-        if (syscall_getcwd(path, sizeof(path)) < 0) print_line("pwd: unavailable");
+        if (getcwd(path, sizeof(path)) < 0) print_line("pwd: unavailable");
         else print_line(path);
     }
     else if (!strcmp(line, "cd") || !strcmp(line, "cd ")) print_line("usage: cd PATH");
     else if (!strncmp(line, "cd ", 3)) {
-        if (syscall_chdir(arguments_after(line, "cd")) < 0)
+        if (chdir(arguments_after(line, "cd")) < 0)
             print_line("cd: directory not found");
     }
     else if (!strcmp(line, "mkdir") || !strcmp(line, "mkdir "))
         print_line("usage: mkdir PATH");
     else if (!strncmp(line, "mkdir ", 6)) {
-        if (syscall_mkdir(arguments_after(line, "mkdir")) < 0)
+        if (mkdir(arguments_after(line, "mkdir")) < 0)
             print_line("mkdir: parent missing, name exists, or path is invalid");
     }
-    else if (!strcmp(line, "pid")) { shell_write("PID: "); syscall_write_dec((u32int)syscall_getpid()); shell_putchar('\n'); }
+    else if (!strcmp(line, "pid")) { shell_write("PID: "); write_dec((uint32_t)getpid()); shell_putchar('\n'); }
     else if (!strcmp(line, "uptime")) {
-        u32int ticks = syscall_ticks();
-        shell_write("Ticks: "); syscall_write_dec(ticks);
-        shell_write(" (~"); syscall_write_dec(ticks/50); shell_write(" seconds)\n");
+        uint32_t ticks = system_ticks();
+        shell_write("Ticks: "); write_dec(ticks);
+        shell_write(" (~"); write_dec(ticks/50); shell_write(" seconds)\n");
     }
     else if (!strcmp(line, "mem")) {
         shell_write("Tracked contiguous RAM: ");
-        syscall_write_dec(syscall_memory_kib()); shell_write(" KiB\n");
+        write_dec(system_memory_kib()); shell_write(" KiB\n");
     }
     else if (!strcmp(line, "heaptest")) command_heaptest();
     else if (!strcmp(line, "exec") || !strcmp(line, "exec "))
         print_line("usage: exec PATH [ARG ...]");
     else if (!strncmp(line, "exec ", 5))
         command_exec(&line[5]);
+    else if (!strcmp(line, "run") || !strcmp(line, "run "))
+        print_line("usage: run PATH [ARG ...]");
+    else if (!strncmp(line, "run ", 4))
+        command_run(&line[4]);
+    else if (!strcmp(line, "kill") || !strcmp(line, "kill "))
+        print_line("usage: kill PID SIGNAL");
+    else if (!strncmp(line, "kill ", 5))
+        command_kill(&line[5]);
     else if (!strcmp(line, "status")) {
         print_line("ring 3: yes; syscalls: yes; initrd: read-only");
-        print_line("external executables: not yet; shell is linked into kernel");
+        print_line("external executables: yes; this shell is /bin/shell ELF32");
         print_line("scheduler: PID 0 kernel idle, PID 1 user mother, PID 2 shell");
         print_line("user heap: page-backed sbrk; malloc not added yet");
+        print_line("signals: catch/ignore/default, kill, SIGCHLD, sigreturn");
     }
     else if (!strcmp(line, "about")) print_line("Soumish's experimental 32-bit x86 OS");
     else if (!strcmp(line, "echo") || !strcmp(line, "echo ")) shell_putchar('\n');
@@ -232,17 +313,19 @@ static void execute_command(char *line)
     else { shell_write("unknown command: "); print_line(line); }
 }
 
-void shell_run(void)
+int main(int argc, char **argv)
 {
+    (void)argc;
+    (void)argv;
     char line[SHELL_LINE_SIZE];
-    u32int length = 0;
+    uint32_t length = 0;
 
     print_line("Welcome to user mode. Type 'help'.");
     print_prompt();
 
     for (;;)
     {
-        int value = syscall_getchar();
+        int value = getchar_nonblocking();
         if (value < 0) { asm volatile("pause"); continue; }
         char character = (char)value;
 
@@ -268,4 +351,5 @@ void shell_run(void)
             shell_putchar(character);
         }
     }
+    return 0;
 }

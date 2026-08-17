@@ -18,6 +18,7 @@
 #include "kheap.h"
 #include "paging.h"
 #include "task.h"
+#include "signal.h"
 
 #define EXEC_PATH_MAX             256
 #define EXEC_ARGUMENT_MAX          16
@@ -380,6 +381,9 @@ int process_execve(const char *path, char *const argv[], char *const envp[],
     process->heap_break = new_heap_start;
     process->heap_mapped_end = new_heap_start;
     process->heap_limit = USER_HEAP_LIMIT;
+
+    /* Custom handler addresses belonged to the discarded ELF image. */
+    task_signal_exec_reset();
 
     return_frame->eip = request->header.entry;
     return_frame->useresp = new_stack_pointer;

@@ -5,7 +5,7 @@
  * original stack pointer here.  This function initializes subsystems in their
  * dependency order, creates the initial userspace mother process, and then
  * leaves PID 0 as the kernel idle context.  The mother becomes PID 1, forks
- * PID 2, and PID 2 runs the temporary linked-in shell.
+ * PID 2, and PID 2 replaces its bootstrap image with /bin/shell from initrd.
  */
 
 #include "monitor.h"
@@ -18,7 +18,6 @@
 #include "task.h"
 #include "syscall.h"
 #include "keyboard.h"
-#include "shell.h"
 
 extern u32int placement_address;
 u32int initial_esp;
@@ -27,27 +26,36 @@ u32int initial_esp;
  * Bootstrap entry for the one userspace process that does not come from fork.
  *
  * This function initially executes at ring 0 on PID 1's newly mapped user
- * stack.  Performing the first fork here is intentional: the current tutorial
- * scheduler can clone and resume this ordinary stack safely, whereas a future
- * user-visible fork syscall must learn to clone an active syscall/interrupt
- * frame on the separate TSS kernel stack.
+ * stack.  It immediately enters ring 3 and uses the same public fork syscall
+ * that the shell will later use for every external program.
  *
  * After fork, both branches use IRET to enter ring 3:
  *   - the parent is the requested do-nothing mother process (PID 1);
- *   - the child runs the current linked-in shell (PID 2).
+ *   - the child execs the standalone /bin/shell ELF image (PID 2).
  */
 static void mother_process_entry(void)
 {
-    int shell_pid = fork();
-    ASSERT(shell_pid >= 0);
-
     switch_to_user_mode();
+    int shell_pid = syscall_fork();
 
     if (shell_pid == 0)
     {
-        shell_run();
-        PANIC("shell returned unexpectedly");
+        char *shell_argv[] = { "/bin/shell", 0 };
+
+        /*
+         * execve copies the path and argument strings out of this old image,
+         * validates the ELF file, builds a fresh userspace address space and
+         * finally enters its _start entry point.  A successful exec therefore
+         * never returns here: PID 2 keeps its identity but becomes the shell.
+         */
+        if (syscall_execve(shell_argv[0], shell_argv, 0) < 0)
+        {
+            syscall_write("PID 2 could not load /bin/shell from initrd.\n");
+            syscall_exit(127);
+        }
     }
+
+    /* A failed initial fork leaves PID 1 alive but intentionally inert. */
 
     /*
      * PID 1 intentionally owns no policy yet.  PAUSE is legal in ring 3 and

@@ -10,6 +10,7 @@
  */
 #include "keyboard.h"
 #include "isr.h"
+#include "task.h"
 
 #define KEYBOARD_DATA_PORT 0x60
 #define KEYBOARD_BUFFER_SIZE 128
@@ -66,6 +67,9 @@ static void keyboard_interrupt(registers_t *regs)
 
     input_buffer[write_index] = character;
     write_index = next;
+
+    /* A real byte is now available, so descriptor-based read(0, ...) may run. */
+    task_wake_keyboard_waiters();
 }
 
 void initialise_keyboard(void)

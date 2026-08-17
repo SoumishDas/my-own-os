@@ -5,6 +5,7 @@ Merging object attributes
 Discarded input sections
 
  .comment       0x00000000       0x13 build/syscall.o
+ .comment       0x00000000       0x13 build/print.o
  .comment       0x00000000       0x13 build/hello.o
 
 Memory Configuration
@@ -16,32 +17,70 @@ Linker script and memory map
 
                 0x08048000                        . = 0x8048000
 
-.text           0x08048000      0x48d
+.text           0x08048000      0x8cf
  *(.text*)
  .text          0x08048000       0x19 build/crt0.o
                 0x08048000                _start
- .text          0x08048019       0x5c build/syscall.o
-                0x08048019                write
-                0x0804803b                getpid
-                0x08048050                sbrk
-                0x0804806e                _exit
- .text          0x08048075      0x289 build/hello.o
-                0x0804813e                main
+ *fill*         0x08048019        0x7 
+ .text          0x08048020       0x16 build/signal.o
+                0x08048020                __signal_trampoline
+ .text          0x08048036      0x32c build/syscall.o
+                0x08048036                write
+                0x08048058                read
+                0x0804807a                open
+                0x0804809b                close
+                0x080480b9                clear_screen
+                0x080480ce                getchar_nonblocking
+                0x080480e3                readdir_name
+                0x08048105                system_ticks
+                0x0804811a                system_memory_kib
+                0x0804812f                write_hex
+                0x0804814d                write_dec
+                0x0804816b                chdir
+                0x08048189                getcwd
+                0x080481aa                mkdir
+                0x080481c8                getpid
+                0x080481dd                sbrk
+                0x080481fb                fork
+                0x08048210                execve
+                0x08048232                waitpid
+                0x08048253                lseek
+                0x08048275                fstat_info
+                0x08048296                stat_info
+                0x080482b7                isatty
+                0x080482d5                signal
+                0x080482f9                kill
+                0x0804831a                raise
+                0x08048330                __sigreturn
+                0x0804834e                _exit
+ .text          0x08048362      0x257 build/print.o
+                0x08048362                string_length
+                0x08048389                strlen
+                0x08048399                strcmp
+                0x0804840b                strncmp
+                0x08048464                atoi
+                0x080484cf                print
+                0x080484f4                print_unsigned
+                0x08048571                print_pid_line
+ .text          0x080485b9      0x19f build/hello.o
+                0x080485b9                main
  *(.rodata*)
- *fill*         0x080482fe        0x2 
- .rodata        0x08048300      0x18d build/hello.o
+ .rodata        0x08048758       0x17 build/print.o
+ *fill*         0x0804876f        0x1 
+ .rodata        0x08048770      0x15f build/hello.o
 
-.iplt           0x0804848d        0x0
- .iplt          0x0804848d        0x0 build/crt0.o
+.iplt           0x080488cf        0x0
+ .iplt          0x080488cf        0x0 build/crt0.o
 
-.rel.dyn        0x08048490        0x0
- .rel.got       0x08048490        0x0 build/crt0.o
- .rel.iplt      0x08048490        0x0 build/crt0.o
+.rel.dyn        0x080488d0        0x0
+ .rel.got       0x080488d0        0x0 build/crt0.o
+ .rel.iplt      0x080488d0        0x0 build/crt0.o
                 0x08049000                        . = ALIGN (0x1000)
 
 .data           0x08049000        0x4
  *(.data*)
  .data          0x08049000        0x0 build/syscall.o
+ .data          0x08049000        0x0 build/print.o
  .data          0x08049000        0x4 build/hello.o
 
 .got            0x08049004        0x0
@@ -56,6 +95,7 @@ Linker script and memory map
 .bss            0x08049004        0x4
  *(.bss*)
  .bss           0x08049004        0x0 build/syscall.o
+ .bss           0x08049004        0x0 build/print.o
  .bss           0x08049004        0x4 build/hello.o
  *(COMMON)
 
@@ -64,57 +104,79 @@ Linker script and memory map
  *(.note*)
  *(.eh_frame*)
 LOAD build/crt0.o
+LOAD build/signal.o
 LOAD build/syscall.o
+LOAD build/print.o
 LOAD build/hello.o
 OUTPUT(bin/hello elf32-i386)
 
-.debug_aranges  0x00000000       0x60
+.debug_aranges  0x00000000       0xa0
  .debug_aranges
                 0x00000000       0x20 build/crt0.o
  .debug_aranges
-                0x00000020       0x20 build/syscall.o
+                0x00000020       0x20 build/signal.o
  .debug_aranges
-                0x00000040       0x20 build/hello.o
+                0x00000040       0x20 build/syscall.o
+ .debug_aranges
+                0x00000060       0x20 build/print.o
+ .debug_aranges
+                0x00000080       0x20 build/hello.o
 
 .debug_pubnames
                 0x00000000        0x0
  .debug_pubnames
                 0x00000000        0x0 build/crt0.o
+ .debug_pubnames
+                0x00000000        0x0 build/signal.o
 
-.debug_info     0x00000000      0x3f8
+.debug_info     0x00000000      0xc72
  .debug_info    0x00000000       0x5f build/crt0.o
- .debug_info    0x0000005f      0x1b4 build/syscall.o
- .debug_info    0x00000213      0x1e5 build/hello.o
+ .debug_info    0x0000005f       0x61 build/signal.o
+ .debug_info    0x000000c0      0x81e build/syscall.o
+ .debug_info    0x000008de      0x25d build/print.o
+ .debug_info    0x00000b3b      0x137 build/hello.o
 
-.debug_abbrev   0x00000000      0x205
+.debug_abbrev   0x00000000      0x3ca
  .debug_abbrev  0x00000000       0x1d build/crt0.o
- .debug_abbrev  0x0000001d       0xcd build/syscall.o
- .debug_abbrev  0x000000ea      0x11b build/hello.o
+ .debug_abbrev  0x0000001d       0x1d build/signal.o
+ .debug_abbrev  0x0000003a      0x189 build/syscall.o
+ .debug_abbrev  0x000001c3      0x135 build/print.o
+ .debug_abbrev  0x000002f8       0xd2 build/hello.o
 
-.debug_line     0x00000000      0x1f0
+.debug_line     0x00000000      0x486
  .debug_line    0x00000000       0x40 build/crt0.o
- .debug_line    0x00000040       0x80 build/syscall.o
- .debug_line    0x000000c0      0x130 build/hello.o
+ .debug_line    0x00000040       0x3e build/signal.o
+ .debug_line    0x0000007e      0x1d2 build/syscall.o
+ .debug_line    0x00000250      0x162 build/print.o
+ .debug_line    0x000003b2       0xd4 build/hello.o
 
-.debug_frame    0x00000000      0x13c
+.debug_frame    0x00000000      0x53c
  .debug_frame   0x00000000        0x0 build/crt0.o
- .debug_frame   0x00000000       0x94 build/syscall.o
- .debug_frame   0x00000094       0xa8 build/hello.o
+ .debug_frame   0x00000000        0x0 build/signal.o
+ .debug_frame   0x00000000      0x3e0 build/syscall.o
+ .debug_frame   0x000003e0      0x114 build/print.o
+ .debug_frame   0x000004f4       0x48 build/hello.o
 
 .debug_loc      0x00000000        0x0
  .debug_loc     0x00000000        0x0 build/crt0.o
+ .debug_loc     0x00000000        0x0 build/signal.o
 
-.debug_str      0x00000000      0x305
- .debug_str     0x00000000      0x305 build/syscall.o
-                                0x27a (size before relaxing)
- .debug_str     0x00000305        0x0 build/hello.o
-                                0x19b (size before relaxing)
+.debug_str      0x00000000      0x548
+ .debug_str     0x00000000      0x548 build/syscall.o
+                                0x4a7 (size before relaxing)
+ .debug_str     0x00000548        0x0 build/print.o
+                                0x182 (size before relaxing)
+ .debug_str     0x00000548        0x0 build/hello.o
+                                0x15e (size before relaxing)
 
 .debug_line_str
-                0x00000000       0x6c
+                0x00000000       0x8c
  .debug_line_str
-                0x00000000       0x6c build/syscall.o
-                                 0x92 (size before relaxing)
+                0x00000000       0x8c build/syscall.o
+                                 0x9b (size before relaxing)
  .debug_line_str
-                0x0000006c        0x0 build/hello.o
-                                 0x94 (size before relaxing)
+                0x0000008c        0x0 build/print.o
+                                 0x8c (size before relaxing)
+ .debug_line_str
+                0x0000008c        0x0 build/hello.o
+                                 0x9e (size before relaxing)

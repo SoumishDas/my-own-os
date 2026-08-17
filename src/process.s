@@ -3,6 +3,7 @@
 ; read_eip supports the tutorial scheduler's unusual context-switch trick.
 ; copy_page_physical copies one physical page while paging is temporarily off.
 ; zero_page_physical clears one newly allocated frame before userspace sees it.
+; resume_user_frame starts a fork child from its private saved interrupt frame.
 ; Both functions use the 32-bit cdecl ABI: arguments are on the stack, EAX is
 ; the return register, and EBX must be preserved for the caller.
 
@@ -76,3 +77,21 @@ zero_page_physical:
     popf
     pop edi
     ret
+
+[GLOBAL resume_user_frame]
+resume_user_frame:
+    ;
+    ; The scheduler jumps here with ESP pointing at a registers_t copied onto
+    ; the child's own kernel stack.  This is the same layout consumed by the
+    ; tail of interrupt.s, so restoring it makes the child appear to return
+    ; normally from int 0x80.  Its copied EAX is zero, as fork requires.
+    ;
+    pop ebx                    ; Saved user data-segment selector.
+    mov ds, bx
+    mov es, bx
+    mov fs, bx
+    mov gs, bx
+    popa                       ; EDI..EAX in the order produced by PUSHA.
+    add esp, 8                 ; Discard copied interrupt number and error code.
+    sti
+    iret                       ; Restore user EIP/CS/EFLAGS/ESP/SS.

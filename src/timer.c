@@ -5,13 +5,20 @@
 #include "isr.h"
 #include "monitor.h"
 #include "task.h"
+#include "signal.h"
 
 static volatile u32int tick = 0; /* IRQ code changes this asynchronously. */
 
 static void timer_callback(registers_t *regs)
 {
-    (void)regs;
     tick++;
+
+    /*
+     * IRQ0 interrupted the current ring-3 task and regs is the exact frame
+     * IRET will consume. Deliver before scheduling: after a context switch the
+     * same modified frame remains on this task's kernel stack until it resumes.
+     */
+    task_signal_deliver(regs);
     switch_task();
 }
 

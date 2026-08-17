@@ -15,12 +15,30 @@ enum syscall_number {
     SYSCALL_MEMORY_KIB, SYSCALL_WRITE_HEX, SYSCALL_WRITE_DEC,
     SYSCALL_OPEN, SYSCALL_FD_READ, SYSCALL_CLOSE, SYSCALL_FD_WRITE,
     SYSCALL_CHDIR, SYSCALL_GETCWD, SYSCALL_MKDIR, SYSCALL_SBRK,
-    SYSCALL_EXECVE,
+    SYSCALL_EXECVE, SYSCALL_FORK, SYSCALL_EXIT, SYSCALL_WAITPID,
+    SYSCALL_SIGNAL, SYSCALL_KILL, SYSCALL_SIGRETURN,
+    SYSCALL_LSEEK, SYSCALL_FSTAT, SYSCALL_STAT, SYSCALL_ISATTY,
     SYSCALL_COUNT
 };
 
 /* Only read-only opens are accepted until the VFS gains writable storage. */
 #define OPEN_READ_ONLY 0
+
+#define SEEK_FROM_START   0
+#define SEEK_FROM_CURRENT 1
+#define SEEK_FROM_END     2
+
+#define FILE_STATUS_REGULAR   1
+#define FILE_STATUS_DIRECTORY 2
+#define FILE_STATUS_CHARACTER 3
+
+typedef struct syscall_file_status
+{
+    u32int type;
+    u32int size;
+    u32int inode;
+    u32int mode;
+} syscall_file_status_t;
 
 void initialise_syscalls(void);
 int syscall_write(const char *text);
@@ -50,5 +68,8 @@ void *syscall_sbrk(s32int increment);
 
 /* Replace the calling process image; returns only when loading fails. */
 int syscall_execve(const char *path, char *const argv[], char *const envp[]);
+int syscall_fork(void);
+void syscall_exit(int status) __attribute__((noreturn));
+int syscall_waitpid(int pid, int *status);
 
 #endif
