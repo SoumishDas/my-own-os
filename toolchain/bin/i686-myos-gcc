@@ -1,0 +1,66 @@
+#!/bin/sh
+#
+# GCC driver for ordinary hosted C programs targeting this OS.
+#
+# Compilation uses Newlib headers and hosted C semantics. Linking adds the OS
+# process entry, signal return trampoline, syscall glue, static Newlib, libm,
+# libgcc, and the ELF layout understood by execve. Kernel builds intentionally
+# continue using raw i686-elf-gcc with their freestanding flags.
+
+set -eu
+
+myos_prefix=${MYOS_TOOLCHAIN_PREFIX:-/home/soumish/opt/cross}
+real_gcc=${MYOS_BASE_GCC:-$myos_prefix/bin/i686-elf-gcc}
+target_root=$myos_prefix/i686-elf
+runtime_root=$target_root/lib/myos
+
+if [ ! -x "$real_gcc" ]; then
+    echo "i686-myos-gcc: base compiler not found: $real_gcc" >&2
+    exit 1
+fi
+
+# Queries and preprocessing/compilation do not invoke the linker. GCC still
+# receives the target's hosted headers and safe code-generation defaults.
+link_program=yes
+for argument in "$@"; do
+    case "$argument" in
+        -c|-S|-E|-M|-MM|-fsyntax-only) link_program=no ;;
+        --version|-dumpmachine|-dumpversion|-print-*)
+            exec "$real_gcc" "$argument"
+            ;;
+    esac
+done
+
+common_options="-m32 -fno-pie -fno-pic -fno-stack-protector"
+
+if [ "$link_program" = no ]; then
+    # Word splitting is intentional for this fixed, trusted option string.
+    # shellcheck disable=SC2086
+    exec "$real_gcc" $common_options \
+        -isystem "$target_root/include" "$@"
+fi
+
+for required_file in \
+    "$runtime_root/crt0.o" \
+    "$runtime_root/signal.o" \
+    "$runtime_root/libmyos.a" \
+    "$runtime_root/myos.ld" \
+    "$target_root/lib/libc.a"
+do
+    if [ ! -f "$required_file" ]; then
+        echo "i686-myos-gcc: missing runtime file: $required_file" >&2
+        echo "Run toolchain/install-runtime.sh after installing Newlib." >&2
+        exit 1
+    fi
+done
+
+# GCC remains the linker driver so it can locate the matching libgcc. Suppress
+# generic bare-metal start/default libraries, then provide the complete OS set.
+# The group permits libc and libmyos to satisfy each other's references.
+# shellcheck disable=SC2086
+exec "$real_gcc" $common_options -isystem "$target_root/include" \
+    -static -no-pie -nostartfiles -nodefaultlibs \
+    -Wl,-m,elf_i386,-T,"$runtime_root/myos.ld",--build-id=none \
+    "$runtime_root/crt0.o" "$runtime_root/signal.o" "$@" \
+    -L"$runtime_root" -L"$target_root/lib" \
+    -Wl,--start-group -lmyos -lc -lm -lgcc -Wl,--end-group

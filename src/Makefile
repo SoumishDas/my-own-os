@@ -18,6 +18,8 @@ FLOPPY_IMAGE   ?= ../floppy.img
 INITRD_IMAGE   ?= ../initrd.img
 INITRD_BUILDER := ../make_initrd
 USER_DIRECTORY := ../user
+HOSTED_USER_NAMES := $(notdir $(basename $(wildcard $(USER_DIRECTORY)/apps/*.c)))
+HOSTED_INITRD_ARGUMENTS := $(foreach name,$(HOSTED_USER_NAMES),user/bin/$(name) bin/$(name))
 
 C_SOURCES      := $(sort $(wildcard *.c))
 ASM_SOURCES    := $(sort $(wildcard *.s))
@@ -62,7 +64,8 @@ $(INITRD_IMAGE): userspace $(INITRD_BUILDER) ../test.txt ../test2.txt
 		user/bin/sigdemo bin/sigdemo \
 		user/bin/abicheck bin/abicheck \
 		user/bin/readcheck bin/readcheck \
-		user/bin/shell bin/shell
+		user/bin/shell bin/shell \
+		$(HOSTED_INITRD_ARGUMENTS)
 
 $(TARGET): $(OBJECTS) $(LINKER_SCRIPT)
 	$(LD) $(ARCH_LDFLAGS) $(LDFLAGS) -Map $(MAP_FILE) -o $@ $(OBJECTS)
@@ -89,7 +92,8 @@ newlib-image: image
 		user/bin/heapdemo bin/heapdemo user/bin/status bin/status \
 		user/bin/sigdemo bin/sigdemo user/bin/abicheck bin/abicheck \
 		user/bin/readcheck bin/readcheck user/bin/shell bin/shell \
-		user/bin/newlib-demo bin/newlib-demo
+		user/bin/newlib-demo bin/newlib-demo \
+		$(HOSTED_INITRD_ARGUMENTS)
 	-$(DEBUGFS) -w -R "rm /initrd" $(FLOPPY_IMAGE)
 	$(DEBUGFS) -w -R "write $(INITRD_IMAGE) /initrd" $(FLOPPY_IMAGE)
 

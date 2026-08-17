@@ -492,33 +492,33 @@ Linker script and memory map
                                 0x52e (size before relaxing)
  *fill*         0x0805422f        0x1 
  .rodata.str1.4
-                0x08054230      0x22b /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strerror.o)
+                0x08054230      0x21b /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strerror.o)
                                 0x172 (size before relaxing)
- *fill*         0x0805445b        0x1 
- .rodata        0x0805445c      0x23c /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strerror.o)
+ *fill*         0x0805444b        0x1 
+ .rodata        0x0805444c      0x23c /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strerror.o)
  .rodata.str1.1
-                0x08054698        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfprintf.o)
+                0x08054688        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfprintf.o)
                                  0x3b (size before relaxing)
- .rodata        0x08054698      0x184 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfprintf.o)
- *fill*         0x0805481c        0x4 
- .rodata.cst8   0x08054820       0x20 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfprintf.o)
+ .rodata        0x08054688      0x184 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfprintf.o)
+ *fill*         0x0805480c        0x4 
+ .rodata.cst8   0x08054810       0x20 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfprintf.o)
                                   0x8 (size before relaxing)
  .rodata.str1.1
-                0x08054840        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
+                0x08054830        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
                                  0x37 (size before relaxing)
  .rodata.str1.4
-                0x08054840        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
-                                 0x42 (size before relaxing)
- .rodata.cst4   0x08054840       0x18 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
- .rodata.cst8   0x08054858        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
+                0x08054830        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
+                                 0x3a (size before relaxing)
+ .rodata.cst4   0x08054830       0x18 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
+ .rodata.cst8   0x08054848        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
                                  0x18 (size before relaxing)
  .rodata.str1.1
-                0x08054858        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mprec.o)
+                0x08054848        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mprec.o)
                                  0x28 (size before relaxing)
  .rodata.str1.4
-                0x08054858        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mprec.o)
-                                 0x43 (size before relaxing)
- *fill*         0x08054858        0x8 
+                0x08054848        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mprec.o)
+                                 0x3b (size before relaxing)
+ *fill*         0x08054848       0x18 
  .rodata        0x08054860      0x168 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mprec.o)
                 0x08054880                __mprec_tinytens
                 0x080548c0                __mprec_bigtens
@@ -551,6 +551,23 @@ Linker script and memory map
  .rel.iplt      0x08054e04        0x0 build/newlib-crt0.o
  .rel.text      0x08054e04        0x0 build/newlib-crt0.o
                 0x08055000                        . = ALIGN (0x1000)
+
+.preinit_array  0x08055000        0x0
+                0x08055000                        PROVIDE (__preinit_array_start = .)
+ *(.preinit_array*)
+                0x08055000                        PROVIDE (__preinit_array_end = .)
+
+.init_array     0x08055000        0x0
+                0x08055000                        PROVIDE (__init_array_start = .)
+ *(SORT_BY_INIT_PRIORITY(.init_array.*))
+ *(.init_array*)
+                0x08055000                        PROVIDE (__init_array_end = .)
+
+.fini_array     0x08055000        0x0
+                0x08055000                        PROVIDE (__fini_array_start = .)
+ *(SORT_BY_INIT_PRIORITY(.fini_array.*))
+ *(.fini_array*)
+                0x08055000                        PROVIDE (__fini_array_end = .)
 
 .data           0x08055000      0x62c
  *(.data*)
@@ -1150,335 +1167,335 @@ OUTPUT(bin/newlib-demo elf32-i386)
  .debug_loc     0x00000000        0x0 build/newlib-crt0.o
  .debug_loc     0x00000000        0x0 build/signal.o
 
-.debug_str      0x00000000     0x1891
- .debug_str     0x00000000     0x1891 build/newlib-syscalls.o
+.debug_str      0x00000000     0x1866
+ .debug_str     0x00000000     0x1866 build/newlib-syscalls.o
                                 0x73a (size before relaxing)
- .debug_str     0x00001891        0x0 build/newlib-demo.o
+ .debug_str     0x00001866        0x0 build/newlib-demo.o
                                 0x4dc (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-atexit.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-atexit.o)
                                 0x12e (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-exit.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-exit.o)
                                 0x119 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-malloc.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-malloc.o)
                                 0x418 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mallocr.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mallocr.o)
                                 0x612 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mlock.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mlock.o)
                                 0x3f9 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fclose.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fclose.o)
                                 0x42d (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fflush.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fflush.o)
                                 0x47b (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fgets.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fgets.o)
                                 0x434 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-findfp.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-findfp.o)
                                 0x587 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fopen.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fopen.o)
                                 0x454 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fseek.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fseek.o)
                                 0x413 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fwalk.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fwalk.o)
                                 0x405 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-perror.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-perror.o)
                                 0x46b (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-printf.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-printf.o)
                                 0x432 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-puts.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-puts.o)
                                 0x46f (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-refill.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-refill.o)
                                 0x481 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-stdio.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-stdio.o)
                                 0x462 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fseeko.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fseeko.o)
                                 0x5d4 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strcpy.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strcpy.o)
                                 0x10c (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strerror.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strerror.o)
                                 0x443 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-u_strerr.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-u_strerr.o)
                                  0x6f (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-closer.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-closer.o)
                                 0x3f0 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-reent.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-reent.o)
                                 0x414 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-impure.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-impure.o)
                                 0x3f4 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fstatr.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fstatr.o)
                                 0x53b (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-lseekr.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-lseekr.o)
                                 0x405 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-openr.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-openr.o)
                                 0x3fe (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-readr.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-readr.o)
                                 0x3fe (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-sbrkr.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-sbrkr.o)
                                 0x3fd (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-writer.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-writer.o)
                                 0x400 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-errno.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-errno.o)
                                 0x3ef (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-init.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-init.o)
                                 0x156 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fini.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fini.o)
                                 0x12c (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memchr.o)
-                                 0x8c (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memcpy.o)
-                                 0x8c (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memset.o)
-                                 0x8c (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strlen.o)
-                                 0x8c (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-__atexit.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memchr.o)
+                                 0x81 (size before relaxing)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memcpy.o)
+                                 0x81 (size before relaxing)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memset.o)
+                                 0x81 (size before relaxing)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strlen.o)
+                                 0x81 (size before relaxing)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-__atexit.o)
                                 0x1bf (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-__call_atexit.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-__call_atexit.o)
                                 0x18f (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-freer.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-freer.o)
                                 0x55c (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfprintf.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfprintf.o)
                                 0x830 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-sprint_r.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-sprint_r.o)
                                 0x43b (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fileno.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fileno.o)
                                 0x412 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-flags.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-flags.o)
                                 0x3ee (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fvwrite.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fvwrite.o)
                                 0x497 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-makebuf.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-makebuf.o)
                                 0x586 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-wsetup.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-wsetup.o)
                                 0x425 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-localeconv.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-localeconv.o)
                                 0x635 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-isattyr.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-isattyr.o)
                                 0x3f2 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memmove.o)
-                                 0x8d (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memmove.o)
+                                 0x82 (size before relaxing)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
                                 0x738 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mprec.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mprec.o)
                                 0x6f1 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-reallocr.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-reallocr.o)
                                 0x4e4 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-locale.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-locale.o)
                                 0x673 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-assert.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-assert.o)
                                 0x42c (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-callocr.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-callocr.o)
                                 0x444 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mbtowc_r.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mbtowc_r.o)
                                 0x617 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-wctomb_r.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-wctomb_r.o)
                                 0x61e (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-ctype_.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-ctype_.o)
                                  0xf4 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fiprintf.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fiprintf.o)
                                 0x437 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfiprintf.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfiprintf.o)
                                 0x781 (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strcmp.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strcmp.o)
                                  0xea (size before relaxing)
- .debug_str     0x00001891        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-abort.o)
+ .debug_str     0x00001866        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-abort.o)
                                  0xf5 (size before relaxing)
 
 .debug_line_str
-                0x00000000     0x15d4
+                0x00000000     0x1381
  .debug_line_str
-                0x00000000     0x15d4 build/newlib-syscalls.o
+                0x00000000     0x1381 build/newlib-syscalls.o
                                 0x1ab (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 build/newlib-demo.o
+                0x00001381        0x0 build/newlib-demo.o
                                 0x156 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-atexit.o)
-                                0x147 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-atexit.o)
+                                0x129 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-exit.o)
-                                0x192 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-exit.o)
+                                0x16c (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-malloc.o)
-                                0x1d0 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-malloc.o)
+                                0x1aa (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mallocr.o)
-                                0x1d3 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mallocr.o)
+                                0x1ad (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mlock.o)
-                                0x1cd (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mlock.o)
+                                0x1a7 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fclose.o)
-                                0x1de (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fclose.o)
+                                0x1b8 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fflush.o)
-                                0x1de (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fflush.o)
+                                0x1b8 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fgets.o)
-                                0x1db (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fgets.o)
+                                0x1b5 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-findfp.o)
-                                0x1e7 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-findfp.o)
+                                0x1c1 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fopen.o)
-                                0x1da (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fopen.o)
+                                0x1b4 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fseek.o)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fseek.o)
+                                0x1a4 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fwalk.o)
+                                0x1a4 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-perror.o)
+                                0x1c0 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-printf.o)
+                                0x1b0 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-puts.o)
+                                0x1bc (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-refill.o)
+                                0x1b8 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-stdio.o)
+                                0x1ac (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fseeko.o)
+                                0x23c (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strcpy.o)
+                                0x120 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strerror.o)
+                                0x1ba (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-u_strerr.o)
+                                 0xe9 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-closer.o)
+                                0x1b0 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-reent.o)
+                                0x1a5 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-impure.o)
+                                0x162 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fstatr.o)
+                                0x21a (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-lseekr.o)
+                                0x1b8 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-openr.o)
+                                0x1b5 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-readr.o)
+                                0x1ad (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-sbrkr.o)
+                                0x1a4 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-writer.o)
+                                0x1b0 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-errno.o)
+                                0x170 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-init.o)
+                                0x11a (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fini.o)
+                                0x11a (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memchr.o)
+                                 0x73 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memcpy.o)
+                                 0x73 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memset.o)
+                                 0x73 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strlen.o)
+                                 0x73 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-__atexit.o)
+                                0x16f (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-__call_atexit.o)
+                                0x138 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-freer.o)
+                                0x1a9 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfprintf.o)
+                                0x2a7 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-sprint_r.o)
+                                0x1b7 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fileno.o)
+                                0x1af (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-flags.o)
+                                0x168 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fvwrite.o)
+                                0x1c6 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-makebuf.o)
+                                0x22e (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-wsetup.o)
+                                0x1b8 (size before relaxing)
+ .debug_line_str
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-localeconv.o)
                                 0x1ca (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fwalk.o)
-                                0x1ca (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-isattyr.o)
+                                0x1b3 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-perror.o)
-                                0x1e6 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memmove.o)
+                                 0x74 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-printf.o)
-                                0x1d6 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
+                                0x265 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-puts.o)
-                                0x1e2 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mprec.o)
+                                0x268 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-refill.o)
-                                0x1de (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-reallocr.o)
+                                0x173 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-stdio.o)
-                                0x1d2 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-locale.o)
+                                0x25a (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fseeko.o)
-                                0x26a (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-assert.o)
+                                0x1bb (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strcpy.o)
-                                0x13e (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-callocr.o)
+                                0x179 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strerror.o)
-                                0x1e0 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mbtowc_r.o)
+                                0x20a (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-u_strerr.o)
-                                 0xff (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-wctomb_r.o)
+                                0x20a (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-closer.o)
-                                0x1d6 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-ctype_.o)
+                                0x126 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-reent.o)
-                                0x1cb (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fiprintf.o)
+                                0x1b6 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-impure.o)
-                                0x180 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fstatr.o)
-                                0x248 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-lseekr.o)
-                                0x1de (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-openr.o)
-                                0x1db (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-readr.o)
-                                0x1d3 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-sbrkr.o)
-                                0x1ca (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-writer.o)
-                                0x1d6 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-errno.o)
-                                0x18e (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-init.o)
-                                0x130 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fini.o)
-                                0x130 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memchr.o)
-                                 0x7e (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memcpy.o)
-                                 0x7e (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memset.o)
-                                 0x7e (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strlen.o)
-                                 0x7e (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-__atexit.o)
-                                0x195 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-__call_atexit.o)
-                                0x156 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-freer.o)
-                                0x1cf (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfprintf.o)
-                                0x2dd (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-sprint_r.o)
-                                0x1dd (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fileno.o)
-                                0x1d5 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-flags.o)
-                                0x186 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fvwrite.o)
-                                0x1ec (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-makebuf.o)
-                                0x25c (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-wsetup.o)
-                                0x1de (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-localeconv.o)
-                                0x1f0 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-isattyr.o)
-                                0x1d9 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-memmove.o)
-                                 0x7f (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-dtoa.o)
-                                0x29b (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mprec.o)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfiprintf.o)
                                 0x29e (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-reallocr.o)
-                                0x191 (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strcmp.o)
+                                0x120 (size before relaxing)
  .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-locale.o)
-                                0x290 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-assert.o)
-                                0x1e1 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-callocr.o)
-                                0x197 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-mbtowc_r.o)
-                                0x238 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-wctomb_r.o)
-                                0x238 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-ctype_.o)
-                                0x144 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-fiprintf.o)
-                                0x1dc (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-vfiprintf.o)
-                                0x2d4 (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-strcmp.o)
-                                0x13e (size before relaxing)
- .debug_line_str
-                0x000015d4        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-abort.o)
-                                0x18d (size before relaxing)
+                0x00001381        0x0 /home/soumish/opt/cross/i686-elf/lib/libc.a(libc_a-abort.o)
+                                0x167 (size before relaxing)
 
 .debug_loclists
                 0x00000000     0xdbf5

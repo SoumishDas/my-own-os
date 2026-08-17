@@ -77,6 +77,23 @@ Linker script and memory map
  .rel.iplt      0x08049d3c        0x0 build/crt0.o
                 0x0804a000                        . = ALIGN (0x1000)
 
+.preinit_array  0x0804a000        0x0
+                [!provide]                        PROVIDE (__preinit_array_start = .)
+ *(.preinit_array*)
+                [!provide]                        PROVIDE (__preinit_array_end = .)
+
+.init_array     0x0804a000        0x0
+                [!provide]                        PROVIDE (__init_array_start = .)
+ *(SORT_BY_INIT_PRIORITY(.init_array.*))
+ *(.init_array*)
+                [!provide]                        PROVIDE (__init_array_end = .)
+
+.fini_array     0x0804a000        0x0
+                [!provide]                        PROVIDE (__fini_array_start = .)
+ *(SORT_BY_INIT_PRIORITY(.fini_array.*))
+ *(.fini_array*)
+                [!provide]                        PROVIDE (__fini_array_end = .)
+
 .data           0x0804a000        0x0
  *(.data*)
  .data          0x0804a000        0x0 build/syscall.o
