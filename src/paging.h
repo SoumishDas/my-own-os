@@ -98,4 +98,12 @@ void page_fault(registers_t *regs);
 **/
 page_directory_t *clone_directory(page_directory_t *src);
 
+/**
+   Destroy a non-canonical directory after it is no longer loaded in CR3.
+   Tables shared with kernel_directory are retained; every private mapped frame,
+   private page table, and the directory object itself are returned to their
+   allocators.  This is the primitive exec() needs to discard the old image.
+**/
+void destroy_directory(page_directory_t *directory);
+
 #endif

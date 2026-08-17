@@ -2,6 +2,7 @@
 ;
 ; read_eip supports the tutorial scheduler's unusual context-switch trick.
 ; copy_page_physical copies one physical page while paging is temporarily off.
+; zero_page_physical clears one newly allocated frame before userspace sees it.
 ; Both functions use the 32-bit cdecl ABI: arguments are on the stack, EAX is
 ; the return register, and EBX must be preserved for the caller.
 
@@ -44,4 +45,34 @@ copy_page_physical:
   
     popf                  ; Pop EFLAGS back.
     pop ebx               ; Get the original value of EBX back.
+    ret
+
+[GLOBAL zero_page_physical]
+zero_page_physical:
+    ; Save every cdecl callee-saved register that this routine modifies while
+    ; paging is still active and the caller's virtual stack is reachable.
+    push edi
+    pushf
+    cli
+
+    ; Two pushes moved the physical-address argument from [esp+4] to [esp+12].
+    mov edi, [esp+12]
+
+    ; Kernel instructions are identity-mapped, so execution can continue while
+    ; CR0.PG is clear.  Do not touch the virtual stack until paging is restored.
+    mov eax, cr0
+    and eax, 0x7fffffff
+    mov cr0, eax
+
+    xor eax, eax           ; Value written into every four-byte word.
+    mov ecx, 1024          ; 1024 dwords = one 4096-byte physical frame.
+    cld                    ; Make REP STOSD advance EDI toward higher addresses.
+    rep stosd
+
+    mov eax, cr0
+    or eax, 0x80000000
+    mov cr0, eax           ; Restoring paging also refreshes translation state.
+
+    popf
+    pop edi
     ret

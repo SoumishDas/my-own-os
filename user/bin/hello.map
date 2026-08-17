@@ -1,0 +1,120 @@
+
+Merging object attributes
+
+
+Discarded input sections
+
+ .comment       0x00000000       0x13 build/syscall.o
+ .comment       0x00000000       0x13 build/hello.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+                0x08048000                        . = 0x8048000
+
+.text           0x08048000      0x48d
+ *(.text*)
+ .text          0x08048000       0x19 build/crt0.o
+                0x08048000                _start
+ .text          0x08048019       0x5c build/syscall.o
+                0x08048019                write
+                0x0804803b                getpid
+                0x08048050                sbrk
+                0x0804806e                _exit
+ .text          0x08048075      0x289 build/hello.o
+                0x0804813e                main
+ *(.rodata*)
+ *fill*         0x080482fe        0x2 
+ .rodata        0x08048300      0x18d build/hello.o
+
+.iplt           0x0804848d        0x0
+ .iplt          0x0804848d        0x0 build/crt0.o
+
+.rel.dyn        0x08048490        0x0
+ .rel.got       0x08048490        0x0 build/crt0.o
+ .rel.iplt      0x08048490        0x0 build/crt0.o
+                0x08049000                        . = ALIGN (0x1000)
+
+.data           0x08049000        0x4
+ *(.data*)
+ .data          0x08049000        0x0 build/syscall.o
+ .data          0x08049000        0x4 build/hello.o
+
+.got            0x08049004        0x0
+ .got           0x08049004        0x0 build/crt0.o
+
+.got.plt        0x08049004        0x0
+ .got.plt       0x08049004        0x0 build/crt0.o
+
+.igot.plt       0x08049004        0x0
+ .igot.plt      0x08049004        0x0 build/crt0.o
+
+.bss            0x08049004        0x4
+ *(.bss*)
+ .bss           0x08049004        0x0 build/syscall.o
+ .bss           0x08049004        0x4 build/hello.o
+ *(COMMON)
+
+/DISCARD/
+ *(.comment)
+ *(.note*)
+ *(.eh_frame*)
+LOAD build/crt0.o
+LOAD build/syscall.o
+LOAD build/hello.o
+OUTPUT(bin/hello elf32-i386)
+
+.debug_aranges  0x00000000       0x60
+ .debug_aranges
+                0x00000000       0x20 build/crt0.o
+ .debug_aranges
+                0x00000020       0x20 build/syscall.o
+ .debug_aranges
+                0x00000040       0x20 build/hello.o
+
+.debug_pubnames
+                0x00000000        0x0
+ .debug_pubnames
+                0x00000000        0x0 build/crt0.o
+
+.debug_info     0x00000000      0x3f8
+ .debug_info    0x00000000       0x5f build/crt0.o
+ .debug_info    0x0000005f      0x1b4 build/syscall.o
+ .debug_info    0x00000213      0x1e5 build/hello.o
+
+.debug_abbrev   0x00000000      0x205
+ .debug_abbrev  0x00000000       0x1d build/crt0.o
+ .debug_abbrev  0x0000001d       0xcd build/syscall.o
+ .debug_abbrev  0x000000ea      0x11b build/hello.o
+
+.debug_line     0x00000000      0x1f0
+ .debug_line    0x00000000       0x40 build/crt0.o
+ .debug_line    0x00000040       0x80 build/syscall.o
+ .debug_line    0x000000c0      0x130 build/hello.o
+
+.debug_frame    0x00000000      0x13c
+ .debug_frame   0x00000000        0x0 build/crt0.o
+ .debug_frame   0x00000000       0x94 build/syscall.o
+ .debug_frame   0x00000094       0xa8 build/hello.o
+
+.debug_loc      0x00000000        0x0
+ .debug_loc     0x00000000        0x0 build/crt0.o
+
+.debug_str      0x00000000      0x305
+ .debug_str     0x00000000      0x305 build/syscall.o
+                                0x27a (size before relaxing)
+ .debug_str     0x00000305        0x0 build/hello.o
+                                0x19b (size before relaxing)
+
+.debug_line_str
+                0x00000000       0x6c
+ .debug_line_str
+                0x00000000       0x6c build/syscall.o
+                                 0x92 (size before relaxing)
+ .debug_line_str
+                0x0000006c        0x0 build/hello.o
+                                 0x94 (size before relaxing)

@@ -1,5 +1,6 @@
-// initrd.h -- Defines the interface for and structures relating to the initial ramdisk.
-//             Written for JamesM's kernel development tutorials.
+/* initrd.h -- On-image records for the read-only boot archive.
+ * Header names are relative paths; initrd.c infers directory nodes from their
+ * slash-separated components while the raw file data remains flat on disk. */
 
 #ifndef INITRD_H
 #define INITRD_H
@@ -15,7 +16,7 @@ typedef struct
 typedef struct
 {
     u8int magic;     // Magic number, for error checking.
-    s8int name[64];  // Filename.
+    s8int name[64];  // Null-terminated relative path inside the archive.
     u32int offset;   // Offset in the initrd that the file starts.
     u32int length;   // Length of the file.
 } initrd_file_header_t;

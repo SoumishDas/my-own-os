@@ -12,8 +12,15 @@
 enum syscall_number {
     SYSCALL_WRITE = 0, SYSCALL_PUTCHAR, SYSCALL_CLEAR, SYSCALL_GETCHAR,
     SYSCALL_READDIR, SYSCALL_READFILE, SYSCALL_GETPID, SYSCALL_TICKS,
-    SYSCALL_MEMORY_KIB, SYSCALL_WRITE_HEX, SYSCALL_WRITE_DEC, SYSCALL_COUNT
+    SYSCALL_MEMORY_KIB, SYSCALL_WRITE_HEX, SYSCALL_WRITE_DEC,
+    SYSCALL_OPEN, SYSCALL_FD_READ, SYSCALL_CLOSE, SYSCALL_FD_WRITE,
+    SYSCALL_CHDIR, SYSCALL_GETCWD, SYSCALL_MKDIR, SYSCALL_SBRK,
+    SYSCALL_EXECVE,
+    SYSCALL_COUNT
 };
+
+/* Only read-only opens are accepted until the VFS gains writable storage. */
+#define OPEN_READ_ONLY 0
 
 void initialise_syscalls(void);
 int syscall_write(const char *text);
@@ -27,5 +34,21 @@ u32int syscall_ticks(void);
 u32int syscall_memory_kib(void);
 int syscall_write_hex(u32int value);
 int syscall_write_dec(u32int value);
+int syscall_open(const char *path, u32int flags);
+int syscall_fd_read(int fd, void *buffer, u32int count);
+int syscall_close(int fd);
+int syscall_fd_write(int fd, const void *buffer, u32int count);
+int syscall_chdir(const char *path);
+int syscall_getcwd(char *buffer, u32int capacity);
+int syscall_mkdir(const char *path);
+
+/*
+ * Move this process's userspace heap boundary.  Like traditional sbrk(), the
+ * result is the previous break, or (void*)-1 when the request is invalid.
+ */
+void *syscall_sbrk(s32int increment);
+
+/* Replace the calling process image; returns only when loading fails. */
+int syscall_execve(const char *path, char *const argv[], char *const envp[]);
 
 #endif

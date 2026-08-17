@@ -1,5 +1,12 @@
-// main.c -- Defines the C-code kernel entry point, calls initialisation routines.
-//           Made for JamesM's tutorials <www.jamesmolloy.co.uk>
+/*
+ * main.c -- Kernel boot coordinator.
+ *
+ * GRUB enters through boot.s, which passes the Multiboot information and the
+ * original stack pointer here.  This function initializes subsystems in their
+ * dependency order, creates the initial userspace mother process, and then
+ * leaves PID 0 as the kernel idle context.  The mother becomes PID 1, forks
+ * PID 2, and PID 2 runs the temporary linked-in shell.
+ */
 
 #include "monitor.h"
 #include "descriptor_tables.h"
@@ -15,6 +22,41 @@
 
 extern u32int placement_address;
 u32int initial_esp;
+
+/*
+ * Bootstrap entry for the one userspace process that does not come from fork.
+ *
+ * This function initially executes at ring 0 on PID 1's newly mapped user
+ * stack.  Performing the first fork here is intentional: the current tutorial
+ * scheduler can clone and resume this ordinary stack safely, whereas a future
+ * user-visible fork syscall must learn to clone an active syscall/interrupt
+ * frame on the separate TSS kernel stack.
+ *
+ * After fork, both branches use IRET to enter ring 3:
+ *   - the parent is the requested do-nothing mother process (PID 1);
+ *   - the child runs the current linked-in shell (PID 2).
+ */
+static void mother_process_entry(void)
+{
+    int shell_pid = fork();
+    ASSERT(shell_pid >= 0);
+
+    switch_to_user_mode();
+
+    if (shell_pid == 0)
+    {
+        shell_run();
+        PANIC("shell returned unexpectedly");
+    }
+
+    /*
+     * PID 1 intentionally owns no policy yet.  PAUSE is legal in ring 3 and
+     * merely reduces pressure in this spin loop; timer IRQs still preempt it.
+     * Once wait/exit states exist, init will block here and reap children.
+     */
+    for (;;)
+        asm volatile("pause");
+}
 
 int main(struct multiboot *mboot_ptr, u32int initial_stack)
 {
@@ -56,12 +98,27 @@ int main(struct multiboot *mboot_ptr, u32int initial_stack)
 
     // Initialise the initial ramdisk, and set it as the filesystem root.
     fs_root = initialise_initrd(initrd_location, initrd_end);
+    /* PID 0 starts at / so PID 1 and its forked descendants inherit it. */
+    task_set_working_directory(fs_root);
 
     initialise_syscalls();
     initialise_keyboard();
 
-    switch_to_user_mode();
+    /*
+     * Add PID 1 with a fresh address space.  Its bootstrap will fork PID 2 for
+     * the shell before either branch enters ring 3.
+     */
+    int mother_pid = create_initial_user_process(mother_process_entry);
+    ASSERT(mother_pid == 1);
 
-    shell_run();
-    return 0; /* shell_run() is intentionally non-returning. */
+    monitor_write("Started user mother process with PID ");
+    monitor_write_dec((u32int)mother_pid);
+    monitor_write("; it will fork shell PID 2.\n");
+
+    /*
+     * HLT sleeps kernel PID 0 until the next interrupt instead of wasting CPU.
+     * IRQ0 wakes it and the timer handler may schedule PID 1 or PID 2.
+     */
+    for (;;)
+        asm volatile("hlt");
 }

@@ -9,12 +9,15 @@ LD             := $(CROSS_COMPILE)ld
 NASM           ?= nasm
 DEBUGFS        ?= debugfs
 QEMU           ?= qemu-system-i386
+HOSTCC         ?= cc
 
 TARGET         := kernel
 LINKER_SCRIPT  := link.ld
 MAP_FILE       := $(TARGET).map
 FLOPPY_IMAGE   ?= ../floppy.img
 INITRD_IMAGE   ?= ../initrd.img
+INITRD_BUILDER := ../make_initrd
+USER_DIRECTORY := ../user
 
 C_SOURCES      := $(sort $(wildcard *.c))
 ASM_SOURCES    := $(sort $(wildcard *.s))
@@ -39,9 +42,20 @@ ASFLAGS        ?= -g -F dwarf
 
 .DEFAULT_GOAL := all
 
-.PHONY: all image run clean help
+.PHONY: all image run clean userspace help
 
 all: $(TARGET)
+
+userspace:
+	$(MAKE) -C $(USER_DIRECTORY) CROSS_COMPILE=$(CROSS_COMPILE)
+
+$(INITRD_BUILDER): ../make_initrd.c
+	$(HOSTCC) -std=c99 -Wall -Wextra -O2 $< -o $@
+
+$(INITRD_IMAGE): userspace $(INITRD_BUILDER) ../test.txt ../test2.txt
+	cd .. && ./make_initrd test.txt test.txt \
+		test2.txt docs/guides/test2.txt \
+		user/bin/hello bin/hello
 
 $(TARGET): $(OBJECTS) $(LINKER_SCRIPT)
 	$(LD) $(ARCH_LDFLAGS) $(LDFLAGS) -Map $(MAP_FILE) -o $@ $(OBJECTS)
@@ -65,11 +79,13 @@ run: image
 
 clean:
 	$(RM) $(OBJECTS) $(DEP_FILES) $(TARGET) $(MAP_FILE)
+	$(MAKE) -C $(USER_DIRECTORY) clean
 
 help:
 	@echo "Targets:"
 	@echo "  all    Build $(TARGET) (default)"
 	@echo "  image  Build and copy the kernel/initrd into $(FLOPPY_IMAGE)"
+	@echo "  userspace  Build standalone ELF32 user programs"
 	@echo "  run    Update the floppy image and boot it with QEMU"
 	@echo "  clean  Remove generated objects, dependencies, kernel, and map file"
 	@echo ""

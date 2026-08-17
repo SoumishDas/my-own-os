@@ -1,8 +1,17 @@
-/* task.c -- Early tutorial-style process creation and round-robin scheduling.
- * A task saves only ESP/EBP/EIP, CR3, a kernel stack, PID, and a ready-list
- * link.  There are no blocked/exited states, wait/exit, parents, priorities,
- * descriptor tables, locks, copy-on-write, or robust saved interrupt frames.
- * fork() is educational address-space cloning; exec() does not exist yet. */
+/*
+ * task.c -- Early process creation and round-robin scheduling.
+ *
+ * PROCESS MODEL USED DURING THIS STAGE
+ * ------------------------------------
+ *   PID 0: kernel boot/idle context; it never enters user mode.
+ *   PID 1: the one initial userspace "mother" process, created with a fresh
+ *          page directory by create_initial_user_process().
+ *   PID 2: forked from PID 1 and used for the linked-in shell.
+ *
+ * Later programs will also be produced by fork(), followed by exec() in the
+ * child.  fork() eagerly copies private user pages today; copy-on-write is a
+ * future optimization.  exec() is not implemented yet.
+ */
 
 #include "task.h"
 #include "paging.h"
@@ -20,9 +29,23 @@ extern page_directory_t *kernel_directory;
 extern page_directory_t *current_directory;
 extern u32int initial_esp;
 extern u32int read_eip();
+/* Clear a frame by physical address without requiring it in the current CR3. */
+extern void zero_page_physical(u32int physical_address);
 
 // The next available process ID.
 u32int next_pid = 1;
+
+/* Round an address upward without changing an already aligned address. */
+#define PAGE_SIZE 0x1000
+#define PAGE_ALIGN_UP(value) (((value) + PAGE_SIZE - 1) & ~(PAGE_SIZE - 1))
+
+static void initialise_standard_descriptors(task_t *task)
+{
+    memset(task->descriptors, 0, sizeof(task->descriptors));
+    task->descriptors[0].kind = FD_KIND_KEYBOARD; /* stdin */
+    task->descriptors[1].kind = FD_KIND_CONSOLE;  /* stdout */
+    task->descriptors[2].kind = FD_KIND_CONSOLE;  /* stderr */
+}
 
 void initialise_tasking()
 {
@@ -32,14 +55,22 @@ void initialise_tasking()
     // Relocate the stack so we know where it is.
     move_stack((void*)0xE0000000, 0x2000);
 
-    // Initialise the first task (kernel task)
+    /*
+     * PID 0 represents the kernel's current execution context.  It remains in
+     * the ready queue as the idle task, but is deliberately not counted as the
+     * first userspace process.
+     */
     current_task = ready_queue = (task_t*)kmalloc(sizeof(task_t));
-    current_task->id = next_pid++;
+    memset((void*)current_task, 0, sizeof(task_t));
+    current_task->id = 0;
     current_task->esp = current_task->ebp = 0;
     current_task->eip = 0;
     current_task->page_directory = current_directory;
     current_task->next = 0;
     current_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+    current_task->is_user_process = 0;
+    initialise_standard_descriptors((task_t*)current_task);
+    current_task->working_directory = 0; /* Set after the initrd is mounted. */
 
     // Reenable interrupts.
     asm volatile("sti");
@@ -164,9 +195,190 @@ void switch_task()
       mov $0x12345, %%eax; \
       sti;                 \
       jmp *%%ecx           "
-                 : : "r"(eip), "r"(esp), "r"(ebp), "r"(current_directory->physicalAddr));
+                 :
+                 : "r"(eip), "r"(esp), "r"(ebp),
+                   "r"(current_directory->physicalAddr)
+                 : "eax", "ecx", "memory");
 }
 
+/* Append a fully initialized task while interrupts are disabled. */
+static void append_ready_task(task_t *new_task)
+{
+    task_t *tail = (task_t*)ready_queue;
+    while (tail->next != 0)
+        tail = tail->next;
+    tail->next = new_task;
+}
+
+int create_initial_user_process(void (*entry)(void))
+{
+    ASSERT(entry != 0);
+    ASSERT(ready_queue != 0);
+
+    /* The timer IRQ traverses the same ready list and must not see half a task. */
+    asm volatile("cli");
+
+    task_t *process = (task_t*)kmalloc(sizeof(task_t));
+    memset(process, 0, sizeof(*process));
+
+    /*
+     * Clone the canonical kernel directory, not PID 0's current directory.
+     * PID 0 has a private relocated stack mapping which must not leak into the
+     * first userspace address space.  clone_directory(kernel_directory) shares
+     * canonical kernel tables and gives PID 1 room for private user mappings.
+     */
+    process->page_directory = clone_directory(kernel_directory);
+
+    /*
+     * Map the fixed initial user stack into PID 1's private directory.  These
+     * pages are empty at first; the bootstrap entry starts with ESP at the top
+     * and ordinary C calls grow the stack toward lower addresses.
+     */
+    u32int stack_bottom = USER_STACK_TOP - TASK_STACK_SIZE;
+    for (u32int address = stack_bottom;
+         address < USER_STACK_TOP;
+         address += PAGE_SIZE)
+    {
+        page_t *page = get_page(address, 1, process->page_directory);
+        alloc_frame(page, 0, 1);
+        zero_page_physical(page->frame * PAGE_SIZE);
+    }
+
+    process->id = next_pid++;
+    process->esp = USER_STACK_TOP;
+    process->ebp = USER_STACK_TOP;
+    process->eip = (u32int)entry;
+    process->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+    process->is_user_process = 1;
+
+    /*
+     * There is no ELF image yet, so use a temporary fixed heap base.  exec()
+     * will later replace this with ALIGN_UP(highest_loaded_segment_end).
+     */
+    process->heap_start = USER_HEAP_START;
+    process->heap_break = USER_HEAP_START;
+    process->heap_mapped_end = USER_HEAP_START;
+    process->heap_limit = USER_HEAP_LIMIT;
+
+    memcpy(process->descriptors, ((task_t*)current_task)->descriptors,
+           sizeof(process->descriptors));
+    process->working_directory = current_task->working_directory;
+    process->next = 0;
+    append_ready_task(process);
+
+    asm volatile("sti");
+    return process->id;
+}
+
+u32int task_sbrk(s32int increment)
+{
+    task_t *process = (task_t*)current_task;
+    if (process == 0 || !process->is_user_process)
+        return (u32int)-1;
+
+    u32int old_break = process->heap_break;
+    u32int new_break;
+
+    /*
+     * Compute signed movement without relying on signed overflow.  The two
+     * branches explicitly reject wrapping around address zero or 4 GiB.
+     */
+    if (increment >= 0)
+    {
+        u32int growth = (u32int)increment;
+        if (growth > 0xFFFFFFFFU - old_break)
+            return (u32int)-1;
+        new_break = old_break + growth;
+    }
+    else
+    {
+        /* -(INT_MIN) overflows signed int, so form the magnitude unsigned. */
+        u32int shrink = 0U - (u32int)increment;
+        if (shrink > old_break)
+            return (u32int)-1;
+        new_break = old_break - shrink;
+    }
+
+    if (new_break < process->heap_start || new_break > process->heap_limit)
+        return (u32int)-1;
+
+    /*
+     * heap_break is byte-granular, whereas x86 mappings are page-granular.
+     * Only map frames that become necessary after crossing a page boundary.
+     */
+    u32int required_mapped_end = PAGE_ALIGN_UP(new_break);
+    for (u32int address = process->heap_mapped_end;
+         address < required_mapped_end;
+         address += PAGE_SIZE)
+    {
+        page_t *page = get_page(address, 1, process->page_directory);
+        ASSERT(page != 0);
+        alloc_frame(page, 0, 1); /* User-accessible and writable. */
+        zero_page_physical(page->frame * PAGE_SIZE);
+        invalidate_page(address);
+    }
+
+    if (required_mapped_end > process->heap_mapped_end)
+        process->heap_mapped_end = required_mapped_end;
+    process->heap_break = new_break;
+    return old_break;
+}
+
+file_descriptor_t *task_get_descriptor(int fd)
+{
+    if (current_task == 0 || fd < 0 || fd >= MAX_FILE_DESCRIPTORS)
+        return 0;
+    file_descriptor_t *descriptor = &((task_t*)current_task)->descriptors[fd];
+    return descriptor->kind == FD_KIND_FREE ? 0 : descriptor;
+}
+
+int task_open_descriptor(fs_node_t *node, u32int flags)
+{
+    if (current_task == 0 || node == 0)
+        return -1;
+    for (int fd = 3; fd < MAX_FILE_DESCRIPTORS; fd++)
+    {
+        file_descriptor_t *descriptor = &((task_t*)current_task)->descriptors[fd];
+        if (descriptor->kind != FD_KIND_FREE)
+            continue;
+        descriptor->kind = FD_KIND_NODE;
+        descriptor->node = node;
+        descriptor->offset = 0;
+        descriptor->flags = flags;
+        open_fs(node, 1, 0);
+        return fd;
+    }
+    return -1; /* This task already has all sixteen slots occupied. */
+}
+
+int task_close_descriptor(int fd)
+{
+    /* Standard streams remain installed for the lifetime of these early tasks. */
+    if (fd < 3 || fd >= MAX_FILE_DESCRIPTORS || current_task == 0)
+        return -1;
+    file_descriptor_t *descriptor = &((task_t*)current_task)->descriptors[fd];
+    if (descriptor->kind == FD_KIND_FREE)
+        return -1;
+    if (descriptor->kind == FD_KIND_NODE)
+        close_fs(descriptor->node);
+    memset(descriptor, 0, sizeof(*descriptor));
+    return 0;
+}
+
+fs_node_t *task_get_working_directory(void)
+{
+    return current_task == 0 ? 0 : current_task->working_directory;
+}
+
+void task_set_working_directory(fs_node_t *directory)
+{
+    ASSERT(current_task != 0);
+    ASSERT(directory != 0 && (directory->flags & 0x7) == FS_DIRECTORY);
+    current_task->working_directory = directory;
+}
+
+
+// COPY ON WRITE IS TO BE IMPLEMENTED LATER
 int fork()
 {
     // We are modifying kernel structures, and so cannot be interrupted.
@@ -185,15 +397,19 @@ int fork()
     new_task->eip = 0;
     new_task->page_directory = directory;
     new_task->kernel_stack = kmalloc_a(KERNEL_STACK_SIZE);
+    new_task->heap_start = parent_task->heap_start;
+    new_task->heap_break = parent_task->heap_break;
+    new_task->heap_mapped_end = parent_task->heap_mapped_end;
+    new_task->heap_limit = parent_task->heap_limit;
+    new_task->is_user_process = parent_task->is_user_process;
+    memcpy(new_task->descriptors, parent_task->descriptors,
+           sizeof(new_task->descriptors));
+    new_task->working_directory = parent_task->working_directory;
     new_task->next = 0;
 
     // Add it to the end of the ready queue.
     // Find the end of the ready queue...
-    task_t *tmp_task = (task_t*)ready_queue;
-    while (tmp_task->next)
-        tmp_task = tmp_task->next;
-    // ...And extend it.
-    tmp_task->next = new_task;
+    append_ready_task(new_task);
 
     // This will be the entry point for the new process.
     u32int eip = read_eip();

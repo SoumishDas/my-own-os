@@ -426,3 +426,34 @@ page_directory_t *clone_directory(page_directory_t *src)
     }
     return dir;
 }
+
+void destroy_directory(page_directory_t *directory)
+{
+    ASSERT(directory != 0);
+    ASSERT(directory != kernel_directory);
+    ASSERT(directory != current_directory);
+
+    for (u32int table_index = 0; table_index < 1024; table_index++)
+    {
+        page_table_t *table = directory->tables[table_index];
+        if (table == 0)
+            continue;
+
+        /*
+         * Canonical kernel tables are intentionally referenced by every
+         * address space.  Their frames and table objects are not owned by this
+         * directory and must never be released here.
+         */
+        if (kernel_directory->tables[table_index] == table)
+            continue;
+
+        for (u32int page_index = 0; page_index < 1024; page_index++)
+        {
+            if (table->pages[page_index].present)
+                free_frame(&table->pages[page_index]);
+        }
+        kfree(table);
+    }
+
+    kfree(directory);
+}

@@ -23,7 +23,8 @@ typedef u32int (*write_type_t)(struct fs_node*,u32int,u32int,u8int*);
 typedef void (*open_type_t)(struct fs_node*);
 typedef void (*close_type_t)(struct fs_node*);
 typedef struct dirent * (*readdir_type_t)(struct fs_node*,u32int);
-typedef struct fs_node * (*finddir_type_t)(struct fs_node*,char *name);
+typedef struct fs_node * (*finddir_type_t)(struct fs_node*,const char *name);
+typedef int (*mkdir_type_t)(struct fs_node*,const char *name);
 
 typedef struct fs_node
 {
@@ -41,7 +42,10 @@ typedef struct fs_node
     close_type_t close;
     readdir_type_t readdir;
     finddir_type_t finddir;
+    mkdir_type_t mkdir; /* Create one direct child directory, if supported. */
     struct fs_node *ptr; // Used by mountpoints and symlinks.
+    /* VFS ancestry used by relative paths, getcwd(), and `..` traversal. */
+    struct fs_node *parent;
 } fs_node_t;
 
 struct dirent
@@ -60,6 +64,25 @@ u32int write_fs(fs_node_t *node, u32int offset, u32int size, u8int *buffer);
 void open_fs(fs_node_t *node, u8int read, u8int write);
 void close_fs(fs_node_t *node);
 struct dirent *readdir_fs(fs_node_t *node, u32int index);
-fs_node_t *finddir_fs(fs_node_t *node, char *name);
+fs_node_t *finddir_fs(fs_node_t *node, const char *name);
+
+/*
+ * Resolve a slash-separated path beginning at root.
+ * This is deliberately a lookup-only operation: it does not allocate, modify
+ * the input string, follow symbolic links, or understand a current directory.
+ */
+fs_node_t *find_path_fs(fs_node_t *root, const char *path);
+
+/* Resolve absolute paths from root and relative paths from working_directory. */
+fs_node_t *resolve_path_fs(fs_node_t *root, fs_node_t *working_directory,
+                           const char *path);
+
+/* Reconstruct node's absolute path. Returns character count or -1 on failure. */
+int get_path_fs(fs_node_t *root, fs_node_t *node, char *buffer, u32int capacity);
+
+/* Driver-independent wrappers for creating one volatile/persistent directory. */
+int mkdir_fs(fs_node_t *parent, const char *name);
+int mkdir_path_fs(fs_node_t *root, fs_node_t *working_directory,
+                  const char *path);
 
 #endif

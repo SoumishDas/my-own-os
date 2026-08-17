@@ -1,5 +1,7 @@
 /* Host-side builder for the kernel's tiny, read-only initrd format.
  * Usage: make_initrd host-file name-in-image [host-file name-in-image ...]
+ * Image names may be paths such as "bin/hello" or "etc/system/config".
+ * Directories are inferred by the kernel; only files occupy headers.
  * The output is a count, 64 fixed headers, then each file's raw bytes. */
 #include <stdint.h>
 #include <stdio.h>
@@ -15,6 +17,28 @@ struct initrd_header
     uint32_t offset;     /* Byte offset from the image's first byte. */
     uint32_t length;     /* File length in bytes. */
 };
+
+static int valid_image_path(const char *path)
+{
+    size_t length = strlen(path);
+    if (length == 0 || path[0] == '/' || path[length - 1] == '/')
+        return 0;
+
+    const char *component = path;
+    for (const char *cursor = path; ; ++cursor)
+    {
+        if (*cursor != '/' && *cursor != '\0')
+            continue;
+        size_t component_length = (size_t)(cursor - component);
+        if (component_length == 0 ||
+            (component_length == 1 && component[0] == '.') ||
+            (component_length == 2 && component[0] == '.' && component[1] == '.'))
+            return 0;
+        if (*cursor == '\0')
+            return 1;
+        component = cursor + 1;
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -44,6 +68,19 @@ int main(int argc, char **argv)
         {
             fprintf(stderr, "error: image name exceeds 63 bytes: %s\n", image_name);
             return 1;
+        }
+        if (!valid_image_path(image_name))
+        {
+            fprintf(stderr, "error: invalid relative image path: %s\n", image_name);
+            return 1;
+        }
+        for (int previous = 0; previous < i; ++previous)
+        {
+            if (strcmp(headers[previous].name, image_name) == 0)
+            {
+                fprintf(stderr, "error: duplicate image path: %s\n", image_name);
+                return 1;
+            }
         }
 
         FILE *input = fopen(host_name, "rb");

@@ -8,8 +8,49 @@
 
 #include "common.h"
 #include "paging.h"
+#include "fs.h"
 
-#define KERNEL_STACK_SIZE 2048       // Use a 2kb kernel stack.
+#define KERNEL_STACK_SIZE 8192       // Ring-0 stack used by interrupts/syscalls.
+#define TASK_STACK_SIZE   8192       // Initial user stack mapped for a new process.
+#define MAX_FILE_DESCRIPTORS 16
+
+/*
+ * TEMPORARY USER VIRTUAL-MEMORY LAYOUT
+ * ------------------------------------
+ * The linked-in mother and shell are an intermediate step before ELF exec.
+ * Their instructions still live in the low identity-mapped kernel image, but
+ * their writable process memory lives in private page tables:
+ *
+ *   0x40000000  first possible byte of the userspace heap
+ *       ...     heap grows upward when sbrk() advances heap_break
+ *   0xBFF00000  exclusive heap limit and guard gap
+ *       ...     deliberately unused space
+ *   0xBFFFE000  bottom of the initial 8 KiB user stack
+ *   0xC0000000  top of user address space / start of kernel heap
+ *
+ * Once exec loads ELF files, heap_start will be computed from the end of the
+ * loaded program rather than always using USER_HEAP_START.
+ */
+#define USER_HEAP_START  0x40000000
+#define USER_HEAP_LIMIT  0xBFF00000
+#define USER_STACK_TOP   0xC0000000
+
+/* Descriptor kinds let standard streams exist without fake filesystem nodes. */
+typedef enum file_descriptor_kind
+{
+    FD_KIND_FREE = 0,
+    FD_KIND_KEYBOARD,
+    FD_KIND_CONSOLE,
+    FD_KIND_NODE
+} file_descriptor_kind_t;
+
+typedef struct file_descriptor
+{
+    file_descriptor_kind_t kind;
+    fs_node_t *node;  /* Only FD_KIND_NODE uses this pointer. */
+    u32int offset;    /* Next byte read or written for seekable nodes. */
+    u32int flags;     /* Reserved for O_RDONLY/O_WRONLY/O_RDWR expansion. */
+} file_descriptor_t;
 
 // This structure defines a 'task' - a process.
 typedef struct task
@@ -19,6 +60,21 @@ typedef struct task
     u32int eip;            // Instruction pointer.
     page_directory_t *page_directory; // Page directory.
     u32int kernel_stack;   // Kernel stack location.
+
+    /*
+     * A user heap has no kernel-side hole headers or allocation records.
+     * libc's malloc/free will eventually manage individual blocks.  The
+     * kernel only remembers the legal range, the exact byte-level break, and
+     * how far physical pages have already been mapped.
+     */
+    u32int heap_start;      // Lowest break value; fixed for this program image.
+    u32int heap_break;      // First byte beyond storage currently granted by sbrk.
+    u32int heap_mapped_end; // Page-aligned end of already mapped heap pages.
+    u32int heap_limit;      // Exclusive ceiling preventing stack/heap collision.
+    u8int is_user_process;  // Zero for PID 0; nonzero for ring-3 processes.
+
+    file_descriptor_t descriptors[MAX_FILE_DESCRIPTORS];
+    fs_node_t *working_directory; /* Base node for relative path resolution. */
     struct task *next;     // The next task in a linked list.
 } task_t;
 
@@ -27,6 +83,29 @@ void initialise_tasking();
 
 // Called by the timer hook, this changes the running process.
 void switch_task();
+
+/*
+ * Create PID 1 with a fresh address space and private user stack.  This is the
+ * one exceptional process that does not originate from fork(); every later
+ * userspace process begins as a clone of an existing userspace process.
+ */
+int create_initial_user_process(void (*entry)(void));
+
+/*
+ * Move the current process break by increment bytes and return the old break.
+ * A return value of (u32int)-1 means the request was outside the heap range.
+ * Positive growth maps user-writable pages only when a page boundary is
+ * crossed.  Shrinking changes the logical break but retains mapped pages for
+ * now, allowing later growth to reuse them cheaply.
+ */
+u32int task_sbrk(s32int increment);
+
+/* Descriptor helpers used by syscall.c on behalf of the current task. */
+file_descriptor_t *task_get_descriptor(int fd);
+int task_open_descriptor(fs_node_t *node, u32int flags);
+int task_close_descriptor(int fd);
+fs_node_t *task_get_working_directory(void);
+void task_set_working_directory(fs_node_t *directory);
 
 // Forks the current process, spawning a new one with a different
 // memory space.
